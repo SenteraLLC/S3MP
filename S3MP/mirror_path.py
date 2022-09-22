@@ -77,11 +77,11 @@ class MirrorPath:
         local_folder = self.local_path.parent
         local_folder.mkdir(parents=True, exist_ok=True)
 
-        # TODO move downloads to more central spot
         s3_resource = S3MPGlobals.s3_resource
         bucket = s3_resource.Bucket(self.s3_bucket)
         if not overwrite and self.exists_in_mirror():
             return
+        # TODO handle folder.
         bucket.download_file(
             self.s3_key,
             self.local_path,
@@ -112,9 +112,9 @@ class MirrorPath:
         new_key = replace_key_segments(self.s3_key, segments)
         return MirrorPath.from_s3_key(new_key)
     
-    def replace_key_segments_at_relative_depth(self, segments: List[KeySegment], depth: int) -> MirrorPath:
+    def replace_key_segments_at_relative_depth(self, segments: List[KeySegment]) -> MirrorPath:
         """Replace key segments at relative depth."""
-        new_key = replace_key_segments_at_relative_depth(self.s3_key, segments, depth)
+        new_key = replace_key_segments_at_relative_depth(self.s3_key, segments)
         return MirrorPath.from_s3_key(new_key)
         
 
