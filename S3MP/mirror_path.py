@@ -1,9 +1,11 @@
 """S3 Mirror pathing management."""
+from __future__ import annotations
 import os
-from typing import Dict
+from typing import Dict, List
 import boto3
 from pathlib import Path
 from S3MP.globals import S3MPGlobals
+from S3MP.keys import KeySegment, replace_key_segments, replace_key_segments_at_relative_depth
 
 
 def get_env_file_path() -> Path:
@@ -104,3 +106,15 @@ class MirrorPath:
             Callback=S3MPGlobals.callback,
             Config=transfer_config,
         )
+    
+    def replace_key_segments(self, segments: List[KeySegment]) -> MirrorPath:
+        """Replace key segments."""
+        new_key = replace_key_segments(self.s3_key, segments)
+        return MirrorPath.from_s3_key(new_key)
+    
+    def replace_key_segments_at_relative_depth(self, segments: List[KeySegment], depth: int) -> MirrorPath:
+        """Replace key segments at relative depth."""
+        new_key = replace_key_segments_at_relative_depth(self.s3_key, segments, depth)
+        return MirrorPath.from_s3_key(new_key)
+        
+
