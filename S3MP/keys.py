@@ -62,7 +62,7 @@ def replace_key_segments_at_relative_depth(key: str, segments: List[KeySegment])
 
 
 
-def unpack_s3_obj_generator(path, filter_name, is_file):
+def unpack_s3_obj_generator(path: str, filter_name: str, is_file: bool):
     """Produce generator for S3 objects, and then unpack it. Used for multiprocessing."""
     if is_file:
         objs_at_depth = get_files_within_folder(path, filter_name)

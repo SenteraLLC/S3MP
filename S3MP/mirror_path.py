@@ -37,7 +37,7 @@ def get_env_mirror_root() -> Path:
 
 
 class MirrorPath:
-    """A path representing an S3 file and it's local mirror."""
+    """A path representing an S3 file and its local mirror."""
 
     def __init__(
         self, s3_key: str, local_path: Path, s3_bucket: str = S3MPGlobals.default_bucket
