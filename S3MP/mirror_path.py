@@ -1,7 +1,9 @@
 """S3 Mirror pathing management."""
+import json
 from __future__ import annotations
 import os
-from typing import Dict, List
+import numpy as np
+from typing import Callable, Dict, List
 import boto3
 from pathlib import Path
 from S3MP.globals import S3MPGlobals
@@ -116,5 +118,35 @@ class MirrorPath:
         """Replace key segments at relative depth."""
         new_key = replace_key_segments_at_relative_depth(self.s3_key, segments)
         return MirrorPath.from_s3_key(new_key)
+    
+    def load_local(self, download: bool = True, load_fns: Callable = None):
+        """Load local file, infer file type and load."""
+        if download or not self.exists_in_mirror():
+            self.download_to_mirror()
+        if load_fns is None:
+            match(self.local_path.suffix):
+                case ".json":
+                    load_fn = lambda x: json.load(open(x))
+                case ".npy":
+                    load_fn = np.load
+        
+        data = load_fn(self.local_path)
+        return data    
+    
+    def save_local(self, data, upload: bool = True, save_fn: Callable = None):
+        """Save local file, infer file type and upload."""
+        if save_fn is None:
+            match(self.local_path.suffix):
+                case ".json":
+                    save_fn = lambda path, data: json.dump(data, open(path, 'w'))
+                case ".npy":
+                    save_fn = np.save
+        save_fn(self.local_path, data)
+        if upload:
+            self.upload_from_mirror()
+
+    def __repr__(self):
+        """Repr."""
+        return f"{self.__class__.__name__}({self.s3_key}, {self.local_path}, {self.s3_bucket})"
         
 
