@@ -41,6 +41,8 @@ def build_s3_key(segments: List[KeySegment]) -> Tuple[str, int]:
 
 def replace_key_segments(key: str, segments: List[KeySegment]) -> str:
     """Replace segments of a key with new segments."""
+    if type(segments) == KeySegment:
+        segments = [segments]
     segments = sorted(segments, key=lambda x: x.depth)
     key_segments = key.split("/")
     for segment in segments:
