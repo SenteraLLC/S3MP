@@ -56,7 +56,7 @@ def replace_key_segments_at_relative_depth(key: str, segments: List[KeySegment])
     if type(segments) == KeySegment:
         segments = [segments]
     segments = sorted(segments, key=lambda x: x.depth)
-    key_segments = key.split("/")
+    key_segments = [seg for seg in key.split("/") if seg]
     og_key_len = len(key_segments)
     for segment in segments:
         new_depth = segment.depth + og_key_len - 1

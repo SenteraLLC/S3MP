@@ -1,5 +1,5 @@
 """S3 Mirror pathing management."""
-import cv2 
+import cv2
 import json
 from __future__ import annotations
 import os
@@ -8,7 +8,11 @@ from typing import Callable, Dict, List
 import boto3
 from pathlib import Path
 from S3MP.globals import S3MPGlobals
-from S3MP.keys import KeySegment, replace_key_segments, replace_key_segments_at_relative_depth
+from S3MP.keys import (
+    KeySegment,
+    replace_key_segments,
+    replace_key_segments_at_relative_depth,
+)
 
 
 def get_env_file_path() -> Path:
@@ -74,7 +78,7 @@ class MirrorPath:
         s3_client = S3MPGlobals.s3_client
         results = s3_client.list_objects_v2(Bucket=self.s3_bucket, Prefix=self.s3_key)
         return "Contents" in results
-    
+
     def download_to_mirror_if_not_present(self):
         """Download to mirror if not present."""
         if not self.exists_in_mirror():
@@ -114,17 +118,36 @@ class MirrorPath:
             Callback=S3MPGlobals.callback,
             Config=transfer_config,
         )
-    
+
     def replace_key_segments(self, segments: List[KeySegment]) -> MirrorPath:
         """Replace key segments."""
         new_key = replace_key_segments(self.s3_key, segments)
         return MirrorPath.from_s3_key(new_key)
-    
-    def replace_key_segments_at_relative_depth(self, segments: List[KeySegment]) -> MirrorPath:
+
+    def replace_key_segments_at_relative_depth(
+        self, segments: List[KeySegment]
+    ) -> MirrorPath:
         """Replace key segments at relative depth."""
         new_key = replace_key_segments_at_relative_depth(self.s3_key, segments)
         return MirrorPath.from_s3_key(new_key)
+
+    def get_sibling(self, sibling_name: str) -> MirrorPath:
+        """Get a file with the same parent as this file."""
+        return self.replace_key_segments_at_relative_depth(
+            [KeySegment(0, sibling_name)]
+        )
     
+    def get_child(self, child_name: str) -> MirrorPath:
+        """Get a file with the same parent as this file."""
+        return self.replace_key_segments_at_relative_depth(
+            [KeySegment(1, child_name)]
+        )
+    
+    def get_parent(self) -> MirrorPath:
+        """Get the parent of this file."""
+        stripped_key = "/".join([seg for seg in self.s3_key.split("/") if seg][:-1])
+        return MirrorPath.from_s3_key(stripped_key)
+
     def load_local(self, download: bool = True, load_fn: Callable = None):
         """
         Load local file, infer file type and load.
@@ -133,23 +156,23 @@ class MirrorPath:
         if download or not self.exists_in_mirror():
             self.download_to_mirror()
         if load_fn is None:
-            match(self.local_path.suffix):
+            match (self.local_path.suffix):
                 case ".json":
                     load_fn = lambda x: json.load(open(x))
                 case ".npy":
                     load_fn = np.load
                 case ".jpg" | ".jpeg" | ".png":
                     load_fn = cv2.imread
-        
+
         data = load_fn(str(self.local_path))
-        return data    
-    
+        return data
+
     def save_local(self, data, upload: bool = True, save_fn: Callable = None):
         """Save local file, infer file type and upload."""
         if save_fn is None:
-            match(self.local_path.suffix):
+            match (self.local_path.suffix):
                 case ".json":
-                    save_fn = lambda path, data: json.dump(data, open(path, 'w'))
+                    save_fn = lambda path, data: json.dump(data, open(path, "w"))
                 case ".npy":
                     save_fn = np.save
                 case ".jpg" | ".jpeg" | ".png":
@@ -161,5 +184,3 @@ class MirrorPath:
     def __repr__(self):
         """Repr."""
         return f"{self.__class__.__name__}({self.s3_key}, {self.local_path}, {self.s3_bucket})"
-        
-
