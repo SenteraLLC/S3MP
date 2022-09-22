@@ -53,11 +53,16 @@ def replace_key_segments_at_relative_depth(key: str, segments: List[KeySegment])
     Replace segments of a key with new segments at a relative depth.
     0 would be the deepest segment, -1 would be the second deepest, etc.
     """
-    key_max_depth = key.count("/") + 1
+    if type(segments) == KeySegment:
+        segments = [segments]
     segments = sorted(segments, key=lambda x: x.depth)
     key_segments = key.split("/")
+    og_key_len = len(key_segments)
     for segment in segments:
-        key_segments[segment.depth + key_max_depth] = segment.name
+        new_depth = segment.depth + og_key_len - 1
+        if new_depth >= len(key_segments):
+            key_segments.append("")
+        key_segments[new_depth] = segment.name
     return "/".join(key_segments)
 
 

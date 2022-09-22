@@ -1,4 +1,5 @@
 """S3 Mirror pathing management."""
+import cv2 
 import json
 from __future__ import annotations
 import os
@@ -73,6 +74,11 @@ class MirrorPath:
         s3_client = S3MPGlobals.s3_client
         results = s3_client.list_objects_v2(Bucket=self.s3_bucket, Prefix=self.s3_key)
         return "Contents" in results
+    
+    def download_to_mirror_if_not_present(self):
+        """Download to mirror if not present."""
+        if not self.exists_in_mirror():
+            self.download_to_mirror()
 
     def download_to_mirror(self, overwrite: bool = False):
         """Download S3 file to mirror."""
@@ -119,18 +125,23 @@ class MirrorPath:
         new_key = replace_key_segments_at_relative_depth(self.s3_key, segments)
         return MirrorPath.from_s3_key(new_key)
     
-    def load_local(self, download: bool = True, load_fns: Callable = None):
-        """Load local file, infer file type and load."""
+    def load_local(self, download: bool = True, load_fn: Callable = None):
+        """
+        Load local file, infer file type and load.
+        Setting download to false will still download if the file is not present.
+        """
         if download or not self.exists_in_mirror():
             self.download_to_mirror()
-        if load_fns is None:
+        if load_fn is None:
             match(self.local_path.suffix):
                 case ".json":
                     load_fn = lambda x: json.load(open(x))
                 case ".npy":
                     load_fn = np.load
+                case ".jpg" | ".jpeg" | ".png":
+                    load_fn = cv2.imread
         
-        data = load_fn(self.local_path)
+        data = load_fn(str(self.local_path))
         return data    
     
     def save_local(self, data, upload: bool = True, save_fn: Callable = None):
@@ -141,7 +152,9 @@ class MirrorPath:
                     save_fn = lambda path, data: json.dump(data, open(path, 'w'))
                 case ".npy":
                     save_fn = np.save
-        save_fn(self.local_path, data)
+                case ".jpg" | ".jpeg" | ".png":
+                    save_fn = cv2.imwrite
+        save_fn(str(self.local_path), data)
         if upload:
             self.upload_from_mirror()
 
