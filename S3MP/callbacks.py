@@ -4,36 +4,26 @@ S3 callbacks to be used for boto3 transfers (uploads, downloads, and copies).
 from S3MP.globals import S3MPGlobals
 import os
 from typing import Union, List
-from tqdm import tqdm
+import tqdm
 
 
-def byte_sizeof_fmt(num: float, suffix: str = "B"):
-    """
-    Format byte size to human-readable format.
-    https://web.archive.org/web/20111010015624/http://blogmag.net/blog/read/38/Print_human_readable_file_size
-
-    :param num: Number of bytes to translate.
-    :param suffix: Suffix to display in output string.
-    """
-    for unit in ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"]:
-        if abs(num) < 1024.0:
-            return f"{num:3.1f}{unit}{suffix}"
-        num /= 1024.0
-    return f"{num:.1f}Yi{suffix}"
-
-
-class FileSizeTQDMCallback(object):
+class FileSizeTQDMCallback(tqdm.tqdm):
     """File transfer tracker scaled to the size of the file(s). Multiple files can be tracked at once."""
 
     def __init__(
-        self, path_or_key_list: Union[List[str], str], resource=None, bucket=None, is_download: bool = True
+        self,
+        path_or_key_list: Union[List[str], str],
+        resource=None,
+        bucket=None,
+        is_download: bool = True,
     ):
         """
         Construct download object and printout total file size.
 
+        :param path_or_key_list: Path or list of paths to files to be downloaded.
         :param resource: AWS Resource to access object with.
         :param bucket: Bucket to locate resource within.
-        :param filename: File to track from bucket.
+        :param is_download: Marker for upload/download transfer.
         """
         if resource is None:
             resource = S3MPGlobals.s3_resource
@@ -47,29 +37,10 @@ class FileSizeTQDMCallback(object):
                 resource.Object(bucket, key).content_length for key in path_or_key_list
             )
         else:  # Upload
-            self._total_bytes = sum(os.path.getsize(key) for key in path_or_key_list)
-
-        transfer_type_str = "download" if is_download else "upload"
-
-        print(
-            f"Starting {transfer_type_str} of size {byte_sizeof_fmt(self._total_bytes)}."
-        )
-
-        self._bytes_seen_so_far = 0
-        self.pbar = tqdm(total=100)
-        self._most_recent_percent = 0
-
-    def __enter__(self):
-        """
-        Enter context manager.
-        """
-        return self
-
-    def __exit__(self, *_):
-        """
-        Exit context manager.
-        """
-        self.pbar.close()
+            self._total_bytes = sum(os.path.getsize(path) for path in path_or_key_list)
+        
+        transfer_str = "Download" if is_download else "Upload"
+        super().__init__(self, total=self._total_bytes, unit="B", unit_scale=True, desc=f"{transfer_str} progress")
 
     def __call__(self, bytes_progress):
         """
@@ -77,9 +48,4 @@ class FileSizeTQDMCallback(object):
 
         :param bytes_progress: Number of bytes downloaded since last call.
         """
-        self._bytes_seen_so_far += bytes_progress
-        percentage = round((self._bytes_seen_so_far / self._total_bytes) * 100)
-        percentage = min(percentage, 100)
-        if percentage > self._most_recent_percent:
-            self.pbar.update(percentage - self._most_recent_percent)
-            self._most_recent_percent = percentage
+        self.update(bytes_progress)
