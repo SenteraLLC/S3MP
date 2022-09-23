@@ -8,7 +8,6 @@ def get_prefix_paginator(bucket_key: str, folder_key: str, delimiter: str = "/")
     """Get a paginator for a specified prefix."""
     if folder_key[-1] != "/":
         folder_key += "/"
-    # TODO move to somewhere global
     s3_client = S3MPGlobals.s3_client
     paginator = s3_client.get_paginator("list_objects_v2")
     return paginator.paginate(

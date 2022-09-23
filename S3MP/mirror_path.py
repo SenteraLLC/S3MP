@@ -1,11 +1,19 @@
 """S3 Mirror pathing management."""
+import functools
+import cv2
+import json
 from __future__ import annotations
 import os
-from typing import Dict, List
+import numpy as np
+from typing import Callable, Dict, List
 import boto3
 from pathlib import Path
 from S3MP.globals import S3MPGlobals
-from S3MP.keys import KeySegment, replace_key_segments, replace_key_segments_at_relative_depth
+from S3MP.keys import (
+    KeySegment,
+    replace_key_segments,
+    replace_key_segments_at_relative_depth,
+)
 
 
 def get_env_file_path() -> Path:
@@ -72,16 +80,21 @@ class MirrorPath:
         results = s3_client.list_objects_v2(Bucket=self.s3_bucket, Prefix=self.s3_key)
         return "Contents" in results
 
+    def download_to_mirror_if_not_present(self):
+        """Download to mirror if not present."""
+        if not self.exists_in_mirror():
+            self.download_to_mirror()
+
     def download_to_mirror(self, overwrite: bool = False):
         """Download S3 file to mirror."""
         local_folder = self.local_path.parent
         local_folder.mkdir(parents=True, exist_ok=True)
 
-        # TODO move downloads to more central spot
         s3_resource = S3MPGlobals.s3_resource
         bucket = s3_resource.Bucket(self.s3_bucket)
         if not overwrite and self.exists_in_mirror():
             return
+        # TODO handle folder.
         bucket.download_file(
             self.s3_key,
             self.local_path,
@@ -106,15 +119,69 @@ class MirrorPath:
             Callback=S3MPGlobals.callback,
             Config=transfer_config,
         )
-    
+
     def replace_key_segments(self, segments: List[KeySegment]) -> MirrorPath:
         """Replace key segments."""
         new_key = replace_key_segments(self.s3_key, segments)
         return MirrorPath.from_s3_key(new_key)
-    
-    def replace_key_segments_at_relative_depth(self, segments: List[KeySegment], depth: int) -> MirrorPath:
-        """Replace key segments at relative depth."""
-        new_key = replace_key_segments_at_relative_depth(self.s3_key, segments, depth)
-        return MirrorPath.from_s3_key(new_key)
-        
 
+    def replace_key_segments_at_relative_depth(
+        self, segments: List[KeySegment]
+    ) -> MirrorPath:
+        """Replace key segments at relative depth."""
+        new_key = replace_key_segments_at_relative_depth(self.s3_key, segments)
+        return MirrorPath.from_s3_key(new_key)
+
+    def get_sibling(self, sibling_name: str) -> MirrorPath:
+        """Get a file with the same parent as this file."""
+        return self.replace_key_segments_at_relative_depth(
+            [KeySegment(0, sibling_name)]
+        )
+    
+    def get_child(self, child_name: str) -> MirrorPath:
+        """Get a file with the same parent as this file."""
+        return self.replace_key_segments_at_relative_depth(
+            [KeySegment(1, child_name)]
+        )
+    
+    def get_parent(self) -> MirrorPath:
+        """Get the parent of this file."""
+        stripped_key = "/".join([seg for seg in self.s3_key.split("/") if seg][:-1])
+        return MirrorPath.from_s3_key(stripped_key)
+
+    def load_local(self, download: bool = True, load_fn: Callable = None):
+        """
+        Load local file, infer file type and load.
+        Setting download to false will still download if the file is not present.
+        """
+        if download or not self.exists_in_mirror():
+            self.download_to_mirror()
+        if load_fn is None:
+            match (self.local_path.suffix):
+                case ".json":
+                    load_fn = functools.partial(json.load, open(self.local_path))
+                case ".npy":
+                    load_fn = np.load
+                case ".jpg" | ".jpeg" | ".png":
+                    load_fn = cv2.imread
+
+        data = load_fn(str(self.local_path))
+        return data
+
+    def save_local(self, data, upload: bool = True, save_fn: Callable = None):
+        """Save local file, infer file type and upload."""
+        if save_fn is None:
+            match (self.local_path.suffix):
+                case ".json":
+                    save_fn = functools.partial(json.dump, fp=open(str(self.local_path), "w"))
+                case ".npy":
+                    save_fn = functools.partial(np.save, file=str(self.local_path))
+                case ".jpg" | ".jpeg" | ".png":
+                    save_fn = functools.partial(cv2.imwrite, filename=str(self.local_path))
+        save_fn(data)
+        if upload:
+            self.upload_from_mirror()
+
+    def __repr__(self):
+        """Repr."""
+        return f"{self.__class__.__name__}({self.s3_key}, {self.local_path}, {self.s3_bucket})"
