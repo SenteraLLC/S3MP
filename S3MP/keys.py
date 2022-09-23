@@ -26,6 +26,10 @@ def get_arbitrary_keys_from_names(names: List[str]) -> List[KeySegment]:
     """Get arbitrary keys from a list of names."""
     return [KeySegment(depth=idx, name=name) for idx, name in enumerate(names)]
 
+def get_segments_from_key(key: str) -> List[KeySegment]:
+    """Get segments from a key."""
+    return [KeySegment(depth=idx, name=name) for idx, name in enumerate(key.split("/"))]
+
 def build_s3_key(segments: List[KeySegment]) -> Tuple[str, int]:
     """Build an S3 key from a list of segments."""
     segments = sorted(segments, key=lambda x: x.depth)
@@ -69,7 +73,7 @@ def replace_key_segments_at_relative_depth(key: str, segments: List[KeySegment])
 
 
 
-def unpack_s3_obj_generator(path, filter_name, is_file):
+def unpack_s3_obj_generator(path: str, filter_name: str, is_file: bool):
     """Produce generator for S3 objects, and then unpack it. Used for multiprocessing."""
     if is_file:
         objs_at_depth = get_files_within_folder(path, filter_name)
