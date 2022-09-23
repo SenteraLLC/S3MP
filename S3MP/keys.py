@@ -26,6 +26,10 @@ def get_arbitrary_keys_from_names(names: List[str]) -> List[KeySegment]:
     """Get arbitrary keys from a list of names."""
     return [KeySegment(depth=idx, name=name) for idx, name in enumerate(names)]
 
+def get_segments_from_key(key: str) -> List[KeySegment]:
+    """Get segments from a key."""
+    return [KeySegment(depth=idx, name=name) for idx, name in enumerate(key.split("/"))]
+
 def build_s3_key(segments: List[KeySegment]) -> Tuple[str, int]:
     """Build an S3 key from a list of segments."""
     segments = sorted(segments, key=lambda x: x.depth)
