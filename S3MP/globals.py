@@ -1,10 +1,11 @@
 """Set global values for S3MP module."""
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Coroutine, List
 import boto3 
-from mypy_boto3_s3 import S3Client, S3ServiceResource
-from boto3.s3.transfer import TransferConfig as S3TransferConfig
+from S3MP.types import S3Client, S3Resource, S3Bucket, S3TransferConfig
+from S3MP.configs import get_transfer_config, MB, GB
+import asyncio 
 
 
 class Singleton(type):
@@ -20,10 +21,41 @@ class Singleton(type):
 class S3MPGlobals(metaclass=Singleton):
     """Singleton class for S3MP globals."""
     s3_client: S3Client = boto3.client("s3")
-    s3_resource: S3ServiceResource = boto3.resource("s3")
+    s3_resource: S3Resource = boto3.resource("s3")
     mirror_root: Path = None 
-    default_bucket: str = None
-    transfer_config: S3TransferConfig = S3TransferConfig(
-        multipart_threshold=1024 * 25, max_concurrency=10, multipart_chunksize=1024 * 25, use_threads=True
-    )
+    default_bucket_key: str = None
+    default_bucket: S3Bucket = None 
+    transfer_config: S3TransferConfig = get_transfer_config(n_threads=10, block_size=8 * MB, max_ram=4 * GB)
     callback: Callable = None
+    use_async_global_thread_queue: bool = True
+
+    def get_bucket(self, bucket_key: str = None) -> S3Bucket:
+        if bucket_key:
+            return self.s3_resource.Bucket(bucket_key)
+        elif self.default_bucket is None:
+            if self.default_bucket_key is None:
+                raise ValueError("No default bucket key set.")
+            self.default_bucket = self.s3_resource.Bucket(self.default_bucket_key)
+        return self.default_bucket
+
+S3MPGlobals = S3MPGlobals() 
+
+
+class GlobalThreadQueue(metaclass=Singleton):
+    """Global management of threads."""
+    threads: List[Coroutine] = [] 
+
+    def add_thread(self, thread: Coroutine):
+        """Add thread to list."""
+        self.threads.append(thread)
+    
+    async def _async_gather_threads(self):
+        """Gather threads."""
+        await asyncio.gather(*self.threads)
+        self.threads = [] 
+    
+    def gather_threads(self):
+        """Gather threads."""
+        asyncio.run(self._async_gather_threads())
+
+GlobalThreadQueue = GlobalThreadQueue()
