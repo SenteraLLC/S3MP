@@ -1,6 +1,7 @@
 """
 S3 callbacks to be used for boto3 transfers (uploads, downloads, and copies).
 """
+from S3MP.globals import S3MPGlobals
 import os
 from typing import Union, List
 from tqdm import tqdm
@@ -25,7 +26,7 @@ class FileSizeTQDMCallback(object):
     """File transfer tracker scaled to the size of the file(s). Multiple files can be tracked at once."""
 
     def __init__(
-        self, resource, bucket, path_or_key_list: Union[List[str], str], is_download: bool = True
+        self, path_or_key_list: Union[List[str], str], resource=None, bucket=None, is_download: bool = True
     ):
         """
         Construct download object and printout total file size.
@@ -34,6 +35,10 @@ class FileSizeTQDMCallback(object):
         :param bucket: Bucket to locate resource within.
         :param filename: File to track from bucket.
         """
+        if resource is None:
+            resource = S3MPGlobals.s3_resource
+        if bucket is None:
+            bucket = S3MPGlobals.default_bucket
         if not isinstance(path_or_key_list, list):
             path_or_key_list = [path_or_key_list]
 

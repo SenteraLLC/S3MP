@@ -34,8 +34,8 @@ def build_s3_key(segments: List[KeySegment]) -> Tuple[str, int]:
         for depth in range(segments[-1].depth + 1)
         if depth not in [seg.depth for seg in segments]
     ]
-    depth = empty_depths[0]
-    path = "/".join([seg.name for seg in segments[: empty_depths[0]]])
+    depth = empty_depths[0] if empty_depths else segments[-1].depth + 1
+    path = "/".join([seg.name for seg in segments[: depth]])
     return path, depth
 
 
