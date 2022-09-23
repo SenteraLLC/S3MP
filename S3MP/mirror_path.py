@@ -1,4 +1,5 @@
 """S3 Mirror pathing management."""
+import functools
 import cv2
 import json
 from __future__ import annotations
@@ -158,7 +159,7 @@ class MirrorPath:
         if load_fn is None:
             match (self.local_path.suffix):
                 case ".json":
-                    load_fn = lambda x: json.load(open(x))
+                    load_fn = functools.partial(json.load, open(self.local_path))
                 case ".npy":
                     load_fn = np.load
                 case ".jpg" | ".jpeg" | ".png":
@@ -172,12 +173,12 @@ class MirrorPath:
         if save_fn is None:
             match (self.local_path.suffix):
                 case ".json":
-                    save_fn = lambda path, data: json.dump(data, open(path, "w"))
+                    save_fn = functools.partial(json.dump, fp=open(str(self.local_path), "w"))
                 case ".npy":
-                    save_fn = np.save
+                    save_fn = functools.partial(np.save, file=str(self.local_path))
                 case ".jpg" | ".jpeg" | ".png":
-                    save_fn = cv2.imwrite
-        save_fn(str(self.local_path), data)
+                    save_fn = functools.partial(cv2.imwrite, filename=str(self.local_path))
+        save_fn(data)
         if upload:
             self.upload_from_mirror()
 
