@@ -1,13 +1,11 @@
 """S3 Mirror pathing management."""
 from __future__ import annotations
-from ast import Global
 import functools
 import cv2
 import json
 import os
 import numpy as np
 from typing import Callable, Dict, List
-import boto3
 from pathlib import Path
 from S3MP.globals import S3MPConfig
 from S3MP.keys import (

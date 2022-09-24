@@ -1,6 +1,5 @@
 """Asynchronous transfer utilities."""
-from pathlib import Path
-from S3MP.globals import S3Resource, S3MPConfig, Singleton
+from S3MP.globals import S3MPConfig
 import aioboto3
 import asyncio
 from typing import Coroutine, List

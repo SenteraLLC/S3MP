@@ -4,7 +4,6 @@ S3 callbacks to be used for boto3 transfers (uploads, downloads, and copies).
 from pathlib import Path
 from S3MP.globals import S3MPConfig
 import os
-from typing import Union, List
 import tqdm
 
 from S3MP.mirror_path import MirrorPath

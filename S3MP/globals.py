@@ -1,11 +1,10 @@
 """Set global values for S3MP module."""
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Coroutine, List
+from typing import Callable
 import boto3 
 from S3MP.types import S3Client, S3Resource, S3Bucket, S3TransferConfig
 from S3MP.configs import get_transfer_config, MB, GB
-import asyncio 
 
 
 class Singleton(type):

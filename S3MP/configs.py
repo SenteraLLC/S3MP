@@ -1,5 +1,4 @@
 """Transfer configurations and utilities."""
-from typing import List
 from S3MP.types import S3TransferConfig
 from s3transfer.constants import KB, MB, GB
 
