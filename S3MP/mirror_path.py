@@ -35,7 +35,7 @@ def set_env_mirror_root(mirror_root: Path) -> None:
 def get_env_mirror_root() -> Path:
     """Get the mirror root from .env file."""
     if S3MPConfig.mirror_root is not None:
-        return S3MPConfig.mirror_root
+        return Path(S3MPConfig.mirror_root)
     env_file = get_env_file_path()
     with open(f"{env_file}", "r") as f:
         mirror_root = f.read().strip().replace("MIRROR_ROOT=", "")
@@ -88,17 +88,17 @@ class MirrorPath:
 
     def download_to_mirror(self, overwrite: bool = False):
         """Download S3 file to mirror."""
+        if not overwrite and self.exists_in_mirror():
+            return
         local_folder = self.local_path.parent
         local_folder.mkdir(parents=True, exist_ok=True)
 
         s3_resource = S3MPConfig.s3_resource
         bucket = s3_resource.Bucket(self.s3_bucket_key)
-        if not overwrite and self.exists_in_mirror():
-            return
         # TODO handle folder.
         bucket.download_file(
             self.s3_key,
-            self.local_path,
+            str(self.local_path),
             Callback=S3MPConfig.callback,
             Config=S3MPConfig.transfer_config,
         )
@@ -107,7 +107,7 @@ class MirrorPath:
         """Upload local file to S3."""
         bucket = S3MPConfig.get_bucket(self.s3_bucket_key)
         bucket.upload_file(
-            self.local_path,
+            str(self.local_path),
             self.s3_key,
             Callback=S3MPConfig.callback,
             Config=S3MPConfig.transfer_config,

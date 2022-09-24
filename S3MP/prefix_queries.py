@@ -4,8 +4,10 @@ from typing import List
 from S3MP.globals import S3MPConfig
 
 
-def get_prefix_paginator(bucket_key: str, folder_key: str, delimiter: str = "/"):
+def get_prefix_paginator(folder_key: str, bucket_key: str = None, delimiter: str = "/"):
     """Get a paginator for a specified prefix."""
+    if not bucket_key:
+        bucket_key = S3MPConfig.default_bucket_key
     if folder_key[-1] != "/":
         folder_key += "/"
     s3_client = S3MPConfig.s3_client

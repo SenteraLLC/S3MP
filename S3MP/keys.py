@@ -168,4 +168,4 @@ def get_matching_s3_keys(segments: List[KeySegment]) -> List[str]:
         ]
         current_paths = itertools.chain(*new_paths)
 
-    return current_paths
+    return list(current_paths)
