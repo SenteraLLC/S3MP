@@ -9,13 +9,12 @@ import numpy as np
 from typing import Callable, Dict, List
 import boto3
 from pathlib import Path
-from S3MP.globals import S3MPConfig, ThreadQueue
+from S3MP.globals import S3MPConfig
 from S3MP.keys import (
     KeySegment,
     replace_key_segments,
     replace_key_segments_at_relative_depth,
 )
-from S3MP.async_transfers import upload_file_thread
 
 
 def get_env_file_path() -> Path:
@@ -104,13 +103,8 @@ class MirrorPath:
             Config=S3MPConfig.transfer_config,
         )
 
-    def upload_from_mirror(self, async_transfer: bool = False):
+    def upload_from_mirror(self):
         """Upload local file to S3."""
-        if async_transfer:
-            thread = upload_file_thread(self.local_path, self.s3_key, self.s3_bucket_key)
-            if S3MPConfig.use_async_global_thread_queue:
-                ThreadQueue.add_thread(thread)
-            return thread 
         bucket = S3MPConfig.get_bucket(self.s3_bucket_key)
         bucket.upload_file(
             self.local_path,

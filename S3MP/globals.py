@@ -39,23 +39,3 @@ class S3MPConfig(metaclass=Singleton):
         return self.default_bucket
 
 S3MPConfig = S3MPConfig() 
-
-
-class ThreadQueue(metaclass=Singleton):
-    """Global management of threads."""
-    threads: List[Coroutine] = [] 
-
-    def add_thread(self, thread: Coroutine):
-        """Add thread to list."""
-        self.threads.append(thread)
-    
-    async def _async_gather_threads(self):
-        """Gather threads."""
-        await asyncio.gather(*self.threads)
-        self.threads = [] 
-    
-    def gather_threads(self):
-        """Gather threads."""
-        asyncio.run(self._async_gather_threads())
-
-ThreadQueue = ThreadQueue()

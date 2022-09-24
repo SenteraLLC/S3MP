@@ -1,10 +1,14 @@
 """
 S3 callbacks to be used for boto3 transfers (uploads, downloads, and copies).
 """
+from pathlib import Path
 from S3MP.globals import S3MPConfig
 import os
 from typing import Union, List
 import tqdm
+
+from S3MP.mirror_path import MirrorPath
+from S3MP.types import SList
 
 
 class FileSizeTQDMCallback(tqdm.tqdm):
@@ -12,7 +16,7 @@ class FileSizeTQDMCallback(tqdm.tqdm):
 
     def __init__(
         self,
-        path_or_key_list: Union[List[str], str],
+        transfer_mappings: SList[Path | str | MirrorPath],
         resource=None,
         bucket=None,
         is_download: bool = True,
@@ -20,7 +24,7 @@ class FileSizeTQDMCallback(tqdm.tqdm):
         """
         Construct download object and printout total file size.
 
-        :param path_or_key_list: Path or list of paths to files to be downloaded.
+        :param transfer_mappings: List of files to be transferred.
         :param resource: AWS Resource to access object with.
         :param bucket: Bucket to locate resource within.
         :param is_download: Marker for upload/download transfer.
@@ -29,15 +33,16 @@ class FileSizeTQDMCallback(tqdm.tqdm):
             resource = S3MPConfig.s3_resource
         if bucket is None:
             bucket = S3MPConfig.default_bucket
-        if not isinstance(path_or_key_list, list):
-            path_or_key_list = [path_or_key_list]
-
-        if is_download:
-            self._total_bytes = sum(
-                resource.Object(bucket, key).content_length for key in path_or_key_list
-            )
-        else:  # Upload
-            self._total_bytes = sum(os.path.getsize(path) for path in path_or_key_list)
+        if not isinstance(transfer_mappings, list):
+            transfer_mappings = [transfer_mappings]
+        self._total_bytes: int = 0
+        for transfer_map in transfer_mappings:
+            if isinstance(transfer_map, MirrorPath):
+                transfer_map = transfer_map.s3_key if is_download else transfer_map.local_path
+            if is_download:
+                self._total_bytes += resource.Object(bucket, transfer_map).content_length
+            else:
+                self._total_bytes += os.path.getsize(transfer_map)
         
         transfer_str = "Download" if is_download else "Upload"
         super().__init__(self, total=self._total_bytes, unit="B", unit_scale=True, desc=f"{transfer_str} progress")
