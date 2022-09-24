@@ -152,7 +152,10 @@ class MirrorPath:
         if load_fn is None:
             match (self.local_path.suffix):
                 case ".json":
-                    load_fn = functools.partial(json.load, open(self.local_path))
+                    def _load_fn(path):
+                        with open(path, 'r') as fd:
+                            return json.load(fd)
+                    load_fn = _load_fn
                 case ".npy":
                     load_fn = np.load
                 case ".jpg" | ".jpeg" | ".png":
