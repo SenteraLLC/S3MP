@@ -166,7 +166,10 @@ class MirrorPath:
         if save_fn is None:
             match (self.local_path.suffix):
                 case ".json":
-                    save_fn = functools.partial(json.dump, fp=open(str(self.local_path), "w"))
+                    def _save_fn(_data):
+                        with open(str(self.local_path), "w") as fd:
+                            json.dump(_data, fd)
+                    save_fn = _save_fn
                 case ".npy":
                     save_fn = functools.partial(np.save, file=str(self.local_path))
                 case ".jpg" | ".jpeg" | ".png":
