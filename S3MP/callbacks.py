@@ -1,7 +1,7 @@
 """
 S3 callbacks to be used for boto3 transfers (uploads, downloads, and copies).
 """
-from S3MP.globals import S3MPGlobals
+from S3MP.globals import S3MPConfig
 import os
 from typing import Union, List
 import tqdm
@@ -26,9 +26,9 @@ class FileSizeTQDMCallback(tqdm.tqdm):
         :param is_download: Marker for upload/download transfer.
         """
         if resource is None:
-            resource = S3MPGlobals.s3_resource
+            resource = S3MPConfig.s3_resource
         if bucket is None:
-            bucket = S3MPGlobals.default_bucket
+            bucket = S3MPConfig.default_bucket
         if not isinstance(path_or_key_list, list):
             path_or_key_list = [path_or_key_list]
 

@@ -1,14 +1,14 @@
 """S3 prefix queries.."""
 from __future__ import annotations
 from typing import List
-from S3MP.globals import S3MPGlobals
+from S3MP.globals import S3MPConfig
 
 
 def get_prefix_paginator(bucket_key: str, folder_key: str, delimiter: str = "/"):
     """Get a paginator for a specified prefix."""
     if folder_key[-1] != "/":
         folder_key += "/"
-    s3_client = S3MPGlobals.s3_client
+    s3_client = S3MPConfig.s3_client
     paginator = s3_client.get_paginator("list_objects_v2")
     return paginator.paginate(
         Bucket=bucket_key, Prefix=folder_key, Delimiter=delimiter

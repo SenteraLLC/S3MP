@@ -5,7 +5,7 @@ Utilities to aid in interaction with S3 objects by using a local mirror of the S
 A path connecting an S3 Key to a local file. Provides utilities to produce the corresponding path/key, check existance, transfer, load/save data, and interact with the key's locality.
 ### KeySegment
 S3 buckets are technically flat storage, but use `/` to delimit "folders". This class provides a representation of each segment of a key, and optionally it's depth. 
-### S3MPGlobals
+### S3MPConfig
 Global settings while using the package. Most S3 interactions take place within the same bucket, use the same callbacks, etc, so these are stored here.
 ## Primary Functions
 ### get_matching_s3_keys

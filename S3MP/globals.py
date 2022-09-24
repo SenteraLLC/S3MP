@@ -18,7 +18,7 @@ class Singleton(type):
         return cls._instances[cls]
 
 @dataclass
-class S3MPGlobals(metaclass=Singleton):
+class S3MPConfig(metaclass=Singleton):
     """Singleton class for S3MP globals."""
     s3_client: S3Client = boto3.client("s3")
     s3_resource: S3Resource = boto3.resource("s3")
@@ -38,10 +38,10 @@ class S3MPGlobals(metaclass=Singleton):
             self.default_bucket = self.s3_resource.Bucket(self.default_bucket_key)
         return self.default_bucket
 
-S3MPGlobals = S3MPGlobals() 
+S3MPConfig = S3MPConfig() 
 
 
-class GlobalThreadQueue(metaclass=Singleton):
+class ThreadQueue(metaclass=Singleton):
     """Global management of threads."""
     threads: List[Coroutine] = [] 
 
@@ -58,4 +58,4 @@ class GlobalThreadQueue(metaclass=Singleton):
         """Gather threads."""
         asyncio.run(self._async_gather_threads())
 
-GlobalThreadQueue = GlobalThreadQueue()
+ThreadQueue = ThreadQueue()

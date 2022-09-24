@@ -1,6 +1,6 @@
 """Asynchronous transfer utilities."""
 from pathlib import Path
-from S3MP.globals import S3Resource, S3MPGlobals, Singleton
+from S3MP.globals import S3Resource, S3MPConfig, Singleton
 import aioboto3
 import asyncio
 from typing import Coroutine, List
@@ -13,11 +13,11 @@ def upload_file_thread(
     config = None
 ) -> Coroutine:
     """Upload a file on a separate thread."""
-    bucket = S3MPGlobals.get_bucket(bucket_key)
+    bucket = S3MPConfig.get_bucket(bucket_key)
     if callback is None:
-        callback = S3MPGlobals.callback
+        callback = S3MPConfig.callback
     if config is None:
-        config = S3MPGlobals.transfer_config
+        config = S3MPConfig.transfer_config
     return asyncio.to_thread(
         bucket.upload_file, 
         str(local_path),

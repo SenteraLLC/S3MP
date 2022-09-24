@@ -9,7 +9,7 @@ import numpy as np
 from typing import Callable, Dict, List
 import boto3
 from pathlib import Path
-from S3MP.globals import S3MPGlobals, GlobalThreadQueue
+from S3MP.globals import S3MPConfig, ThreadQueue
 from S3MP.keys import (
     KeySegment,
     replace_key_segments,
@@ -37,8 +37,8 @@ def set_env_mirror_root(mirror_root: Path) -> None:
 
 def get_env_mirror_root() -> Path:
     """Get the mirror root from .env file."""
-    if S3MPGlobals.mirror_root is not None:
-        return S3MPGlobals.mirror_root
+    if S3MPConfig.mirror_root is not None:
+        return S3MPConfig.mirror_root
     env_file = get_env_file_path()
     with open(f"{env_file}", "r") as f:
         mirror_root = f.read().strip().replace("MIRROR_ROOT=", "")
@@ -50,7 +50,7 @@ class MirrorPath:
     """A path representing an S3 file and its local mirror."""
 
     def __init__(
-        self, s3_key: str, local_path: Path, s3_bucket_key: str = S3MPGlobals.default_bucket_key
+        self, s3_key: str, local_path: Path, s3_bucket_key: str = S3MPConfig.default_bucket_key
     ):
         """Init."""
         self._mirror_root = get_env_mirror_root()
@@ -78,7 +78,7 @@ class MirrorPath:
 
     def exists_on_s3(self) -> bool:
         """Check if file exists on S3."""
-        s3_client = S3MPGlobals.s3_client
+        s3_client = S3MPConfig.s3_client
         results = s3_client.list_objects_v2(Bucket=self.s3_bucket_key, Prefix=self.s3_key)
         return "Contents" in results
 
@@ -92,7 +92,7 @@ class MirrorPath:
         local_folder = self.local_path.parent
         local_folder.mkdir(parents=True, exist_ok=True)
 
-        s3_resource = S3MPGlobals.s3_resource
+        s3_resource = S3MPConfig.s3_resource
         bucket = s3_resource.Bucket(self.s3_bucket_key)
         if not overwrite and self.exists_in_mirror():
             return
@@ -100,23 +100,23 @@ class MirrorPath:
         bucket.download_file(
             self.s3_key,
             self.local_path,
-            Callback=S3MPGlobals.callback,
-            Config=S3MPGlobals.transfer_config,
+            Callback=S3MPConfig.callback,
+            Config=S3MPConfig.transfer_config,
         )
 
     def upload_from_mirror(self, async_transfer: bool = False):
         """Upload local file to S3."""
         if async_transfer:
             thread = upload_file_thread(self.local_path, self.s3_key, self.s3_bucket_key)
-            if S3MPGlobals.use_async_global_thread_queue:
-                GlobalThreadQueue.add_thread(thread)
+            if S3MPConfig.use_async_global_thread_queue:
+                ThreadQueue.add_thread(thread)
             return thread 
-        bucket = S3MPGlobals.get_bucket(self.s3_bucket_key)
+        bucket = S3MPConfig.get_bucket(self.s3_bucket_key)
         bucket.upload_file(
             self.local_path,
             self.s3_key,
-            Callback=S3MPGlobals.callback,
-            Config=S3MPGlobals.transfer_config,
+            Callback=S3MPConfig.callback,
+            Config=S3MPConfig.transfer_config,
         )
 
     def replace_key_segments(self, segments: List[KeySegment]) -> MirrorPath:

@@ -4,10 +4,6 @@ from S3MP.types import S3TransferConfig
 from s3transfer.constants import KB, MB, GB
 
 
-def get_byte_units() -> List[int]:
-    """Get byte units."""
-    return KB, MB, GB
-
 def get_transfer_config(
     n_threads: int, 
     block_size: int = 8 * MB,
