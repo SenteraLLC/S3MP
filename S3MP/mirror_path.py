@@ -49,12 +49,14 @@ class MirrorPath:
     """A path representing an S3 file and its local mirror."""
 
     def __init__(
-        self, s3_key: str, local_path: Path, s3_bucket_key: str = S3MPConfig.default_bucket_key
+        self, s3_key: str, local_path: Path, s3_bucket_key: str = None
     ):
         """Init."""
         self._mirror_root = get_env_mirror_root()
         self.s3_key = s3_key
         self.local_path = local_path
+        if s3_bucket_key is None:
+            s3_bucket_key = S3MPConfig.default_bucket_key
         self.s3_bucket_key = s3_bucket_key
 
     @staticmethod

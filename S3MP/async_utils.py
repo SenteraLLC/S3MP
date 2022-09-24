@@ -27,8 +27,8 @@ def upload_from_mirror_thread(
         bucket.upload_file,
         str(mirror_path.local_path),
         mirror_path.s3_key,
-        callback=S3MPConfig.callback,
-        config=S3MPConfig.transfer_config,
+        Callback=S3MPConfig.callback,
+        Config=S3MPConfig.transfer_config,
     )
 
 async def _async_gather_threads(
