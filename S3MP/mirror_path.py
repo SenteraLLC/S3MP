@@ -81,10 +81,6 @@ class MirrorPath:
         results = s3_client.list_objects_v2(Bucket=self.s3_bucket_key, Prefix=self.s3_key)
         return "Contents" in results
 
-    def download_to_mirror_if_not_present(self):
-        """Download to mirror if not present."""
-        if not self.exists_in_mirror():
-            self.download_to_mirror()
 
     def download_to_mirror(self, overwrite: bool = False):
         """Download S3 file to mirror."""
@@ -103,8 +99,14 @@ class MirrorPath:
             Config=S3MPConfig.transfer_config,
         )
 
-    def upload_from_mirror(self):
+    def download_to_mirror_if_not_present(self):
+        """Download to mirror if not present in mirror."""
+        self.download_to_mirror(overwrite=False)
+
+    def upload_from_mirror(self, overwrite: bool = False):
         """Upload local file to S3."""
+        if not overwrite and self.exists_on_s3():
+            return
         bucket = S3MPConfig.get_bucket(self.s3_bucket_key)
         bucket.upload_file(
             str(self.local_path),
@@ -112,6 +114,10 @@ class MirrorPath:
             Callback=S3MPConfig.callback,
             Config=S3MPConfig.transfer_config,
         )
+    
+    def upload_from_mirror_if_not_present(self):
+        """Upload from mirror if not present on S3."""
+        self.upload_from_mirror(overwrite=False)
 
     def replace_key_segments(self, segments: List[KeySegment]) -> MirrorPath:
         """Replace key segments."""
