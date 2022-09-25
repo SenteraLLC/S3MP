@@ -17,7 +17,7 @@ class FileSizeTQDMCallback(tqdm.tqdm):
         self,
         transfer_mappings: SList[Path | str | MirrorPath],
         resource=None,
-        bucket=None,
+        bucket_key=None,
         is_download: bool = True,
     ):
         """
@@ -30,8 +30,8 @@ class FileSizeTQDMCallback(tqdm.tqdm):
         """
         if resource is None:
             resource = S3MPConfig.s3_resource
-        if bucket is None:
-            bucket = S3MPConfig.default_bucket
+        if bucket_key is None:
+            bucket_key = S3MPConfig.default_bucket_key
         if not isinstance(transfer_mappings, list):
             transfer_mappings = [transfer_mappings]
         self._total_bytes: int = 0
@@ -39,12 +39,17 @@ class FileSizeTQDMCallback(tqdm.tqdm):
             if isinstance(transfer_map, MirrorPath):
                 transfer_map = transfer_map.s3_key if is_download else transfer_map.local_path
             if is_download:
-                self._total_bytes += resource.Object(bucket, transfer_map).content_length
+                self._total_bytes += resource.Object(bucket_key, transfer_map).content_length
             else:
                 self._total_bytes += os.path.getsize(transfer_map)
         
         transfer_str = "Download" if is_download else "Upload"
         super().__init__(self, total=self._total_bytes, unit="B", unit_scale=True, desc=f"{transfer_str} progress")
+    
+    def __enter__(self):
+        """Enter context, set self as global callback."""
+        S3MPConfig.callback = self
+        return self
 
     def __call__(self, bytes_progress):
         """

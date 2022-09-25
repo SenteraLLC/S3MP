@@ -12,23 +12,29 @@ class KeySegment:
     depth: int
     name: str = None
     is_file: bool = False  # Most things are folders.
+    incomplete_name: str = None
 
     def __call__(self, *args, **kwargs):
         """Set data via calling."""
         if len(args) == 1 and type(args[0]) == str:
             self.name = args[0]
         if "name" in kwargs:
-            self.name = kwargs["name"] 
+            self.name = kwargs["name"]
+        if "incomplete_name" in kwargs:
+            self.incomplete_name = kwargs["incomplete_name"]
 
-        return self  # For chaining 
+        return self  # For chaining
+
 
 def get_arbitrary_keys_from_names(names: List[str]) -> List[KeySegment]:
     """Get arbitrary keys from a list of names."""
     return [KeySegment(depth=idx, name=name) for idx, name in enumerate(names)]
 
+
 def get_segments_from_key(key: str) -> List[KeySegment]:
     """Get segments from a key."""
     return [KeySegment(depth=idx, name=name) for idx, name in enumerate(key.split("/"))]
+
 
 def build_s3_key(segments: List[KeySegment]) -> Tuple[str, int]:
     """Build an S3 key from a list of segments."""
@@ -39,7 +45,7 @@ def build_s3_key(segments: List[KeySegment]) -> Tuple[str, int]:
         if depth not in [seg.depth for seg in segments]
     ]
     depth = empty_depths[0] if empty_depths else segments[-1].depth + 1
-    path = "/".join([seg.name for seg in segments[: depth]])
+    path = "/".join([seg.name for seg in segments[:depth]])
     return path, depth
 
 
@@ -72,7 +78,6 @@ def replace_key_segments_at_relative_depth(key: str, segments: List[KeySegment])
     return "/".join(key_segments)
 
 
-
 def unpack_s3_obj_generator(path: str, filter_name: str, is_file: bool):
     """Produce generator for S3 objects, and then unpack it. Used for multiprocessing."""
     if is_file:
@@ -84,14 +89,13 @@ def unpack_s3_obj_generator(path: str, filter_name: str, is_file: bool):
 
 def get_filter_name(segments: List[KeySegment], current_depth: int) -> str:
     """Get the filter name for the current depth."""
-    return (
-        segs_at_current_depth[0].name
-        if (
-            segs_at_current_depth := [
-                seg for seg in segments if seg.depth == current_depth
-            ]
-        )
-        else None
+    return next(
+        (
+            seg.incomplete_name if seg.name is None else seg.name
+            for seg in segments
+            if seg.depth == current_depth
+        ),
+        None,
     )
 
 
@@ -111,10 +115,12 @@ async def dfs_matching_key_gen(
             yield path
     n_paths = len(paths_at_depth)
     if n_paths == 0:
-        return 
-    
+        return
+
     for path in paths_at_depth:
-        async for matching_key in dfs_matching_key_gen(segments, path, current_depth + 1):
+        async for matching_key in dfs_matching_key_gen(
+            segments, path, current_depth + 1
+        ):
             yield matching_key
 
 
@@ -133,8 +139,8 @@ def sync_dfs_matching_key_gen(
         yield from paths_at_depth
     n_paths = len(paths_at_depth)
     if n_paths == 0:
-        return 
-    
+        return
+
     for path in paths_at_depth:
         yield from sync_dfs_matching_key_gen(segments, path, current_depth + 1)
 
@@ -155,7 +161,7 @@ def get_matching_s3_keys(segments: List[KeySegment]) -> List[str]:
     ]
 
     prefix_len = empty_depths[0] if empty_depths else len(segments)
-    initial_prefix = "/".join([seg.name for seg in segments[: prefix_len]])
+    initial_prefix = "/".join([seg.name for seg in segments[:prefix_len]])
     current_paths = [initial_prefix]
     for current_depth in range(prefix_len, max_depth + 1):
         # Determine if there is a filter for the current depth.

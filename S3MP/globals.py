@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Callable
 import boto3 
 from S3MP.types import S3Client, S3Resource, S3Bucket, S3TransferConfig
-from S3MP.configs import get_transfer_config, MB, GB
 
 
 class Singleton(type):
@@ -24,7 +23,7 @@ class S3MPConfig(metaclass=Singleton):
     mirror_root: Path = None 
     default_bucket_key: str = None
     default_bucket: S3Bucket = None 
-    transfer_config: S3TransferConfig = get_transfer_config(n_threads=10, block_size=8 * MB, max_ram=4 * GB)
+    transfer_config: S3TransferConfig = None
     callback: Callable = None
     use_async_global_thread_queue: bool = True
 

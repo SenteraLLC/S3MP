@@ -1,4 +1,5 @@
 """Transfer configurations and utilities."""
+from S3MP.globals import S3MPConfig
 from S3MP.types import S3TransferConfig
 from s3transfer.constants import KB, MB, GB
 
@@ -9,6 +10,7 @@ def get_transfer_config(
     max_ram: int = 4 * GB,
     io_queue_size: int = 10e4,
     io_chunk_size: int = 256 * KB,
+    set_global: bool = True,
 ) -> S3TransferConfig:
     """Get transfer config."""
 
@@ -26,4 +28,6 @@ def get_transfer_config(
         io_chunksize=io_chunk_size,
     )
     config.use_threads = (n_threads > 1)
+    if set_global:
+        S3MPConfig.transfer_config = config
     return config 
