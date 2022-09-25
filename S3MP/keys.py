@@ -19,9 +19,9 @@ class KeySegment:
         if len(args) == 1 and type(args[0]) == str:
             self.name = args[0]
         if "name" in kwargs:
-            self.name = kwargs["name"]
+            self.name = str(kwargs["name"])
         if "incomplete_name" in kwargs:
-            self.incomplete_name = kwargs["incomplete_name"]
+            self.incomplete_name = str(kwargs["incomplete_name"])
 
         return self  # For chaining
 
