@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
-import boto3 
+import boto3
 from S3MP.types import S3Client, S3Resource, S3Bucket, S3TransferConfig
 
 
@@ -35,5 +35,6 @@ class S3MPConfig(metaclass=Singleton):
                 raise ValueError("No default bucket key set.")
             self.default_bucket = self.s3_resource.Bucket(self.default_bucket_key)
         return self.default_bucket
+
 
 S3MPConfig = S3MPConfig() 

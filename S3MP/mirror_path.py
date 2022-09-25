@@ -5,7 +5,7 @@ import cv2
 import json
 import os
 import numpy as np
-from typing import Callable, Dict, List
+from typing import Callable, Dict, List, Tuple
 from pathlib import Path
 from S3MP.globals import S3MPConfig
 from S3MP.keys import (
@@ -46,9 +46,7 @@ def get_env_mirror_root() -> Path:
 class MirrorPath:
     """A path representing an S3 file and its local mirror."""
 
-    def __init__(
-        self, s3_key: str, local_path: Path, s3_bucket_key: str = None
-    ):
+    def __init__(self, s3_key: str, local_path: Path, s3_bucket_key: str = None):
         """Init."""
         self._mirror_root = get_env_mirror_root()
         self.s3_key = s3_key
@@ -78,13 +76,15 @@ class MirrorPath:
     def exists_on_s3(self) -> bool:
         """Check if file exists on S3."""
         s3_client = S3MPConfig.s3_client
-        results = s3_client.list_objects_v2(Bucket=self.s3_bucket_key, Prefix=self.s3_key)
+        results = s3_client.list_objects_v2(
+            Bucket=self.s3_bucket_key, Prefix=self.s3_key
+        )
         return "Contents" in results
-
 
     def download_to_mirror(self, overwrite: bool = False):
         """Download S3 file to mirror."""
         if not overwrite and self.exists_in_mirror():
+            self.update_current_callback_on_skipped_transfer(True)
             return
         local_folder = self.local_path.parent
         local_folder.mkdir(parents=True, exist_ok=True)
@@ -106,6 +106,7 @@ class MirrorPath:
     def upload_from_mirror(self, overwrite: bool = False):
         """Upload local file to S3."""
         if not overwrite and self.exists_on_s3():
+            self.update_current_callback_on_skipped_transfer(False)
             return
         bucket = S3MPConfig.get_bucket(self.s3_bucket_key)
         bucket.upload_file(
@@ -114,7 +115,7 @@ class MirrorPath:
             Callback=S3MPConfig.callback,
             Config=S3MPConfig.transfer_config,
         )
-    
+
     def upload_from_mirror_if_not_present(self):
         """Upload from mirror if not present on S3."""
         self.upload_from_mirror(overwrite=False)
@@ -136,13 +137,11 @@ class MirrorPath:
         return self.replace_key_segments_at_relative_depth(
             [KeySegment(0, sibling_name)]
         )
-    
+
     def get_child(self, child_name: str) -> MirrorPath:
         """Get a file with the same parent as this file."""
-        return self.replace_key_segments_at_relative_depth(
-            [KeySegment(1, child_name)]
-        )
-    
+        return self.replace_key_segments_at_relative_depth([KeySegment(1, child_name)])
+
     def get_parent(self) -> MirrorPath:
         """Get the parent of this file."""
         stripped_key = "/".join([seg for seg in self.s3_key.split("/") if seg][:-1])
@@ -158,9 +157,11 @@ class MirrorPath:
         if load_fn is None:
             match (self.local_path.suffix):
                 case ".json":
+
                     def _load_fn(path):
-                        with open(path, 'r') as fd:
+                        with open(path, "r") as fd:
                             return json.load(fd)
+
                     load_fn = _load_fn
                 case ".npy":
                     load_fn = np.load
@@ -175,17 +176,55 @@ class MirrorPath:
         if save_fn is None:
             match (self.local_path.suffix):
                 case ".json":
+
                     def _save_fn(_data):
                         with open(str(self.local_path), "w") as fd:
                             json.dump(_data, fd)
+
                     save_fn = _save_fn
                 case ".npy":
                     save_fn = functools.partial(np.save, file=str(self.local_path))
                 case ".jpg" | ".jpeg" | ".png":
-                    save_fn = functools.partial(cv2.imwrite, filename=str(self.local_path))
+                    save_fn = functools.partial(
+                        cv2.imwrite, filename=str(self.local_path)
+                    )
         save_fn(data)
         if upload:
             self.upload_from_mirror()
+
+    @staticmethod
+    def get_s3_key_size_bytes(s3_key: str) -> int:
+        """Get the size of an S3 key in bytes."""
+        s3_resource = S3MPConfig.s3_resource
+        bucket_key = S3MPConfig.default_bucket_key
+        return s3_resource.Object(bucket_key, s3_key).content_length
+
+    @staticmethod
+    def get_local_file_size_bytes(local_path: Path) -> int:
+        """Get the size of a local file in bytes."""
+        return local_path.stat().st_size
+
+    @staticmethod
+    def get_transfer_size_bytes(transfer_obj, is_download: bool):
+        """Get the size of a transfer in bytes."""
+        if isinstance(transfer_obj, MirrorPath):
+            return transfer_obj.get_size_bytes(is_download)
+        if is_download:
+            MirrorPath.get_s3_key_size_bytes(transfer_obj)
+        return MirrorPath.get_local_file_size_bytes(transfer_obj)
+
+    def get_size_bytes(self, on_s3: bool = True) -> int:
+        """Get size of self in bytes."""
+        if on_s3 and self.exists_on_s3():
+            return MirrorPath.get_s3_key_size_bytes(self.s3_key)
+        elif self.exists_in_mirror():
+            return MirrorPath.get_local_file_size_bytes(self.local_path)
+        raise FileNotFoundError(f"File {self} not found.")
+
+    def update_current_callback_on_skipped_transfer(self, is_download: bool):
+        """Update the current callback if a transfer gets skipped."""
+        if S3MPConfig.callback and self in S3MPConfig.callback._transfer_objs:
+            S3MPConfig.callback(self.get_size_bytes(is_download))
 
     def __repr__(self):
         """Repr."""
