@@ -177,7 +177,6 @@ class MirrorPath:
         if save_fn is None:
             match (self.local_path.suffix):
                 case ".json":
-
                     def _save_fn(_data):
                         with open(str(self.local_path), "w") as fd:
                             json.dump(_data, fd)
