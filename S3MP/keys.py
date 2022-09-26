@@ -2,7 +2,6 @@
 import itertools
 from dataclasses import dataclass
 from typing import List, Tuple
-from S3MP.mirror_path import MirrorPath
 from S3MP.prefix_queries import get_folders_within_folder, get_files_within_folder
 
 
@@ -177,6 +176,3 @@ def get_matching_s3_keys(segments: List[KeySegment]) -> List[str]:
 
     return list(current_paths)
 
-def get_matching_s3_mirror_paths(segments: List[KeySegment]) -> List[MirrorPath]:
-    """Case get_matching_s3_keys to MirrorPath."""
-    return [MirrorPath(key) for key in get_matching_s3_keys(segments)]

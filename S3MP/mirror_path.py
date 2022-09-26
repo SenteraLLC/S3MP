@@ -10,6 +10,7 @@ from pathlib import Path
 from S3MP.globals import S3MPConfig
 from S3MP.keys import (
     KeySegment,
+    get_matching_s3_keys,
     replace_key_segments,
     replace_key_segments_at_relative_depth,
 )
@@ -229,3 +230,8 @@ class MirrorPath:
     def __repr__(self):
         """Repr."""
         return f"{self.__class__.__name__}({self.s3_key}, {self.local_path}, {self.s3_bucket_key})"
+
+# TODO find better spot for this.
+def get_matching_s3_mirror_paths(segments: List[KeySegment]) -> List[MirrorPath]:
+    """Case get_matching_s3_keys to MirrorPath."""
+    return [MirrorPath(key) for key in get_matching_s3_keys(segments)]
