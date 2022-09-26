@@ -183,7 +183,7 @@ class MirrorPath:
 
                     save_fn = _save_fn
                 case ".npy":
-                    save_fn = functools.partial(np.save, file=str(self.local_path))
+                    save_fn = lambda _data: np.save(str(self.local_path), _data)
                 case ".jpg" | ".jpeg" | ".png":
                     save_fn = functools.partial(
                         cv2.imwrite, filename=str(self.local_path)
