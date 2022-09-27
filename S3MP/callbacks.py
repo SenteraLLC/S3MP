@@ -28,6 +28,8 @@ class FileSizeTQDMCallback(tqdm.tqdm):
         :param bucket: Bucket to locate resource within.
         :param is_download: Marker for upload/download transfer.
         """
+        if transfer_objs is None:
+            return 
         if resource is None:
             resource = S3MPConfig.s3_resource
         if bucket_key is None:

@@ -102,6 +102,12 @@ class MirrorPath:
         bucket = self._get_bucket()
         results = bucket.objects.filter(Prefix=self.s3_key)
         return len(list(results)) > 0
+    
+    def is_file_on_s3(self) -> bool:
+        """Check if is a file on s3."""
+        bucket = self._get_bucket()
+        s3_obj = bucket.Object(self.s3_key)
+        return s3_obj.content_type != "application/x-directory"
 
     def download_to_mirror(self, overwrite: bool = False):
         """Download S3 file to mirror."""
@@ -112,13 +118,19 @@ class MirrorPath:
         local_folder.mkdir(parents=True, exist_ok=True)
 
         bucket = self._get_bucket()
-        # TODO handle folder.
-        bucket.download_file(
-            self.s3_key,
-            str(self.local_path),
-            Callback=S3MPConfig.callback,
-            Config=S3MPConfig.transfer_config,
-        )
+        if self.is_file_on_s3():
+            bucket.download_file(
+                self.s3_key,
+                str(self.local_path),
+                Callback=S3MPConfig.callback,
+                Config=S3MPConfig.transfer_config,
+            )
+        else:  # Folder, so download all.
+            objects = bucket.objects.filter(Prefix=self.s3_key)
+            for obj in objects:
+                obj_mp = MirrorPath.from_s3_key(obj.key)
+                obj_mp.download_to_mirror(overwrite=overwrite)
+
 
     def download_to_mirror_if_not_present(self):
         """Download to mirror if not present in mirror."""
@@ -162,6 +174,12 @@ class MirrorPath:
     def get_child(self, child_name: str) -> MirrorPath:
         """Get a file with the same parent as this file."""
         return self.replace_key_segments_at_relative_depth([KeySegment(1, child_name)])
+    
+    def get_children_on_s3(self) -> List[MirrorPath]:
+        """Get all children on s3."""
+        bucket = self._get_bucket()
+        objects = bucket.objects.filter(Prefix=self.s3_key)
+        return [MirrorPath.from_s3_key(obj.key) for obj in objects]
 
     def get_parent(self) -> MirrorPath:
         """Get the parent of this file."""
