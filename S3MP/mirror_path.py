@@ -14,6 +14,7 @@ from S3MP.keys import (
     replace_key_segments,
     replace_key_segments_at_relative_depth,
 )
+from S3MP.types import S3Bucket, S3Resource
 
 
 def get_env_file_path() -> Path:
@@ -47,14 +48,36 @@ def get_env_mirror_root() -> Path:
 class MirrorPath:
     """A path representing an S3 file and its local mirror."""
 
-    def __init__(self, s3_key: str, local_path: Path, s3_bucket_key: str = None):
+    def __init__(self, s3_key: str, local_path: Path):
         """Init."""
         self._mirror_root = get_env_mirror_root()
         self.s3_key = s3_key
         self.local_path = local_path
-        if s3_bucket_key is None:
-            s3_bucket_key = S3MPConfig.default_bucket_key
-        self.s3_bucket_key = s3_bucket_key
+
+        # Configurable members
+        self.s3_bucket_key: str = None
+        self.s3_resource: S3Resource = None
+        self.s3_bucket: S3Bucket = None
+    
+    def _get_bucket_key(self) -> str:
+        """Get s3 bucket key, create from defaults if not present."""
+        if self.s3_bucket_key is None:
+            self.s3_bucket_key = S3MPConfig.default_bucket_key
+        return self.s3_bucket_key
+    
+    def _get_resource(self) -> S3Resource:
+        """Get s3 resource, create from defaults if not present."""
+        if self.s3_resource is None:
+            self.s3_resource = S3MPConfig.s3_resource
+        return self.s3_resource
+
+    def _get_bucket(self) -> S3Bucket:
+        """Get bucket, create from defaults if not present."""
+        if self.s3_bucket is None:
+            s3_resource = self._get_resource()
+            bucket_key = self._get_bucket_key()
+            self.s3_bucket = s3_resource.Bucket(bucket_key)
+        return self.s3_bucket
 
     @staticmethod
     def from_s3_key(s3_key: str, **kwargs: Dict) -> "MirrorPath":
@@ -76,11 +99,9 @@ class MirrorPath:
 
     def exists_on_s3(self) -> bool:
         """Check if file exists on S3."""
-        s3_client = S3MPConfig.s3_client
-        results = s3_client.list_objects_v2(
-            Bucket=self.s3_bucket_key, Prefix=self.s3_key
-        )
-        return "Contents" in results
+        bucket = self._get_bucket()
+        results = bucket.objects.filter(Prefix=self.s3_key)
+        return len(list(results)) > 0
 
     def download_to_mirror(self, overwrite: bool = False):
         """Download S3 file to mirror."""
@@ -90,8 +111,7 @@ class MirrorPath:
         local_folder = self.local_path.parent
         local_folder.mkdir(parents=True, exist_ok=True)
 
-        s3_resource = S3MPConfig.s3_resource
-        bucket = s3_resource.Bucket(self.s3_bucket_key)
+        bucket = self._get_bucket()
         # TODO handle folder.
         bucket.download_file(
             self.s3_key,
@@ -109,7 +129,7 @@ class MirrorPath:
         if not overwrite and self.exists_on_s3():
             self.update_current_callback_on_skipped_transfer(False)
             return
-        bucket = S3MPConfig.get_bucket(self.s3_bucket_key)
+        bucket = self._get_bucket()
         bucket.upload_file(
             str(self.local_path),
             self.s3_key,
@@ -147,6 +167,17 @@ class MirrorPath:
         """Get the parent of this file."""
         stripped_key = "/".join([seg for seg in self.s3_key.split("/") if seg][:-1])
         return MirrorPath.from_s3_key(stripped_key)
+    
+    def delete_self_on_s3(self):
+        """Delete self on s3."""
+        bucket = self._get_bucket()
+        s3_obj = bucket.Object(key=self.s3_key)
+        s3_obj.delete()
+    
+    def delete_children_on_s3(self):
+        """Delete all children on s3."""
+        bucket = self._get_bucket()
+        bucket.objects.filter(Prefix=self.s3_key).delete()
 
     def load_local(self, download: bool = True, load_fn: Callable = None):
         """
