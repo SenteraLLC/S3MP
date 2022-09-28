@@ -282,4 +282,4 @@ class MirrorPath:
 # TODO find better spot for this.
 def get_matching_s3_mirror_paths(segments: List[KeySegment]) -> List[MirrorPath]:
     """Case get_matching_s3_keys to MirrorPath."""
-    return [MirrorPath(key) for key in get_matching_s3_keys(segments)]
+    return [MirrorPath.from_s3_key(key) for key in get_matching_s3_keys(segments)]
