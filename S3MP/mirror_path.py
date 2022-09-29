@@ -4,6 +4,7 @@ import functools
 import cv2
 import json
 import os
+from mypy_boto3_s3 import S3Client
 import numpy as np
 from typing import Callable, Dict, List, Tuple
 from pathlib import Path
@@ -57,6 +58,7 @@ class MirrorPath:
         # Configurable members
         self.s3_bucket_key: str = None
         self.s3_resource: S3Resource = None
+        self.s3_client: S3Client = None
         self.s3_bucket: S3Bucket = None
     
     def _get_bucket_key(self) -> str:
@@ -70,6 +72,12 @@ class MirrorPath:
         if self.s3_resource is None:
             self.s3_resource = S3MPConfig.s3_resource
         return self.s3_resource
+    
+    def _get_client(self) -> S3Client:
+        """Get s3 client."""
+        if self.s3_client is None:
+            self.s3_client = S3MPConfig.s3_client
+        return self.s3_client
 
     def _get_bucket(self) -> S3Bucket:
         """Get bucket, create from defaults if not present."""
