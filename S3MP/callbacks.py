@@ -23,7 +23,7 @@ class FileSizeTQDMCallback(tqdm.tqdm):
         """
         Construct download object and printout total file size.
 
-        :param transfer_mappings: List of files to be transferred.
+        :param transfer_objs: List of files to be transferred.
         :param resource: AWS Resource to access object with.
         :param bucket: Bucket to locate resource within.
         :param is_download: Marker for upload/download transfer.
