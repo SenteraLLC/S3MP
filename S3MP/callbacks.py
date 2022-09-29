@@ -25,7 +25,7 @@ class FileSizeTQDMCallback(tqdm.tqdm):
 
         :param transfer_objs: List of files to be transferred.
         :param resource: AWS Resource to access object with.
-        :param bucket: Bucket to locate resource within.
+        :param bucket_key: Key of the bucket to locate resource within.
         :param is_download: Marker for upload/download transfer.
         """
         if transfer_objs is None:
