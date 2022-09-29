@@ -7,7 +7,7 @@ import os
 import numpy as np
 from typing import Callable, Dict, List, Tuple
 from pathlib import Path
-from S3MP.globals import S3MPConfig
+from S3MP.global_config import S3MPConfig
 from S3MP.keys import (
     KeySegment,
     get_matching_s3_keys,

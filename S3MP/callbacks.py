@@ -2,7 +2,7 @@
 S3 callbacks to be used for boto3 transfers (uploads, downloads, and copies).
 """
 from pathlib import Path
-from S3MP.globals import S3MPConfig
+from S3MP.global_config import S3MPConfig
 import os
 import tqdm
 

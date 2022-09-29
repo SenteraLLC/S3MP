@@ -1,5 +1,5 @@
 """Asynchronous transfer utilities."""
-from S3MP.globals import S3MPConfig
+from S3MP.global_config import S3MPConfig
 import aioboto3
 import asyncio
 from typing import Coroutine, List

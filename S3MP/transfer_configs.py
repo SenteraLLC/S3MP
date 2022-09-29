@@ -1,5 +1,5 @@
 """Transfer configurations and utilities."""
-from S3MP.globals import S3MPConfig
+from S3MP.global_config import S3MPConfig
 from S3MP.types import S3TransferConfig
 from s3transfer.constants import KB, MB, GB
 

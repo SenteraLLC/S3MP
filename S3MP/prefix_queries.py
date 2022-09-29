@@ -1,7 +1,7 @@
 """S3 prefix queries.."""
 from __future__ import annotations
 from typing import List
-from S3MP.globals import S3MPConfig
+from S3MP.global_config import S3MPConfig
 
 
 def get_prefix_paginator(folder_key: str, bucket_key: str = None, delimiter: str = "/"):
