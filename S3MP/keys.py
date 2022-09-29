@@ -12,7 +12,7 @@ class KeySegment:
     depth: int
     name: str = None
     is_file: bool = False  # Most things are folders.
-    incomplete_name: str = None
+    incomplete_name: str = None  # Used when searching for part of a key segment (i.e. a file extension).
 
     def __call__(self, *args, **kwargs):
         """Set data via calling."""
