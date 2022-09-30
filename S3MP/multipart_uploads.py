@@ -46,11 +46,13 @@ def resume_multipart_upload(
             {"ETag": part.e_tag, "PartNumber": part.part_number} for part in mpu_parts
         ]
     }
+    print()
+    print(f"Resuming multipart upload with {n_uploaded_parts}/{n_total_parts} parts.")
 
     with open(mirror_path.local_path, "rb") as f:
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
             # Verify existing parts.
-            assert(all(part.size == part_size for part in mpu_parts))
+            assert(all(part.size == part_size for part in mpu_parts[:-1]))
 
             f.seek(part_size * n_uploaded_parts)
             S3MPConfig.callback(part_size * n_uploaded_parts)
@@ -70,11 +72,13 @@ def resume_multipart_upload(
                 )
                 S3MPConfig.callback(part_size)
 
-    mpu.complete(
-        MultipartUpload={
-            "Parts": [
-                {"ETag": part.e_tag, "PartNumber": part.part_number}
-                for part in mpu_parts
-            ]
-        }
+    obj = mpu.complete(
+        MultipartUpload=mpu_dict
     )
+    if abs(total_size_bytes - obj.content_length) > MB:
+        print()
+        print(f"Uploaded size {obj.content_length} does not match local size {total_size_bytes}")
+        obj.delete()
+        print("Deleted object, restarting upload.")
+        return resume_multipart_upload(mirror_path, max_threads=max_threads)
+    
