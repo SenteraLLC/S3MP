@@ -55,7 +55,11 @@ def replace_key_segments(key: str, segments: List[KeySegment]) -> str:
         segments = [segments]
     segments = sorted(segments, key=lambda x: x.depth)
     key_segments = key.split("/")
+    og_key_len = len(key_segments)
     for segment in segments:
+        new_depth = segment.depth + og_key_len - 1
+        if new_depth >= len(key_segments):
+            key_segments.append("")
         key_segments[segment.depth] = segment.name
     return "/".join(key_segments)
 

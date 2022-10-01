@@ -204,6 +204,13 @@ class MirrorPath:
         """Delete all children on s3."""
         bucket = self._get_bucket()
         bucket.objects.filter(Prefix=self.s3_key).delete()
+    
+    def delete_local(self):
+        """Delete local file."""
+        if self.local_path.is_dir():
+            self.local_path.rmdir()
+        else:
+            self.local_path.unlink()
 
     def load_local(self, download: bool = True, load_fn: Callable = None):
         """
