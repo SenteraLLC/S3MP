@@ -212,13 +212,13 @@ class MirrorPath:
         else:
             self.local_path.unlink()
 
-    def load_local(self, download: bool = True, load_fn: Callable = None):
+    def load_local(self, download: bool = True, load_fn: Callable = None, overwrite: bool = False):
         """
         Load local file, infer file type and load.
         Setting download to false will still download if the file is not present.
         """
         if download or not self.exists_in_mirror():
-            self.download_to_mirror()
+            self.download_to_mirror(overwrite)
         if load_fn is None:
             match (self.local_path.suffix):
                 case ".json":
@@ -236,7 +236,7 @@ class MirrorPath:
         data = load_fn(str(self.local_path))
         return data
 
-    def save_local(self, data, upload: bool = True, save_fn: Callable = None):
+    def save_local(self, data, upload: bool = True, save_fn: Callable = None, overwrite: bool = False):
         """Save local file, infer file type and upload."""
         if save_fn is None:
             match (self.local_path.suffix):
@@ -254,7 +254,7 @@ class MirrorPath:
                     save_fn = _save_fn
         save_fn(data)
         if upload:
-            self.upload_from_mirror()
+            self.upload_from_mirror(overwrite)
 
     @staticmethod
     def get_s3_key_size_bytes(s3_key: str) -> int:
