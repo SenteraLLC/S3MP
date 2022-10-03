@@ -238,6 +238,8 @@ class MirrorPath:
 
     def save_local(self, data, upload: bool = True, save_fn: Callable = None, overwrite: bool = False):
         """Save local file, infer file type and upload."""
+        if not self.local_path.parent.exists():
+            self.local_path.parent.mkdir(parents=True)
         if save_fn is None:
             match (self.local_path.suffix):
                 case ".json":
