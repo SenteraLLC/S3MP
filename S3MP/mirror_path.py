@@ -124,7 +124,12 @@ class MirrorPath:
     def is_file_on_s3(self) -> bool:
         """Check if is a file on s3."""
         bucket = self._get_bucket()
-        s3_obj = bucket.Object(self.s3_key)
+        try:
+            s3_obj = bucket.Object(self.s3_key)
+        except Exception:
+            self.s3_key += "/"
+            s3_obj = bucket.Object(self.s3_key)
+
         return s3_obj.content_type != "application/x-directory"
 
     def download_to_mirror(self, overwrite: bool = False):
@@ -216,10 +221,11 @@ class MirrorPath:
         # TODO centralized trailing slashes and the like.
         if not self.is_file_on_s3() and self.s3_key[-1] != "/":
             self.s3_key += "/"
-        objects = bucket.objects.filter(Prefix=self.s3_key)
-        print(f"Deleting {len(list(objects))} objects.")
-        for obj in objects:
-            obj.delete()
+        bucket.objects.filter(Prefix=self.s3_key).delete()
+        # objects = bucket.objects.filter(Prefix=self.s3_key)
+        # print(f"Deleting {len(list(objects))} objects.")
+        # for obj in objects:
+        #     obj.delete()
     
     def delete_local(self):
         """Delete local file."""
