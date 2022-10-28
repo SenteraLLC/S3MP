@@ -214,9 +214,9 @@ class MirrorPath:
     def delete_children_on_s3(self):
         """Delete all children on s3."""
         bucket = self._get_bucket()
-        # TODO centralized trailing slashes and the like.
-        if not self.is_file_on_s3() and self.s3_key[-1] != "/":
-            self.s3_key += "/"
+        ## TODO centralized trailing slashes and the like.
+        # if not self.is_file_on_s3() and self.s3_key[-1] != "/":
+        #     self.s3_key += "/"
         bucket.objects.filter(Prefix=self.s3_key).delete()
         # objects = bucket.objects.filter(Prefix=self.s3_key)
         # print(f"Deleting {len(list(objects))} objects.")
