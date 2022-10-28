@@ -49,17 +49,27 @@ def get_env_mirror_root() -> Path:
 class MirrorPath:
     """A path representing an S3 file and its local mirror."""
 
-    def __init__(self, s3_key: str, local_path: Path):
+    def __init__(self, s3_key: str, local_path: Path, **kwargs):
         """Init."""
-        self._mirror_root = get_env_mirror_root()
+        self._mirror_root = kwargs.get("_mirror_root", get_env_mirror_root())
         self.s3_key = s3_key
         self.local_path = local_path
 
         # Configurable members
-        self.s3_bucket_key: str = None
-        self.s3_resource: S3Resource = None
-        self.s3_client: S3Client = None
-        self.s3_bucket: S3Bucket = None
+        self.s3_bucket_key = kwargs.get("s3_bucket_key")
+        self.s3_resource = kwargs.get("s3_resource")
+        self.s3_client = kwargs.get("s3_client")
+        self.s3_bucket = kwargs.get("s3_bucket")
+    
+    def _get_env_dict(self) -> Dict:
+        """Get dictionary detailing S3 environment, usually for constructing a relative MP."""
+        return { 
+            "_mirror_root": self._mirror_root,
+            "s3_bucket_key": self._get_bucket_key(),
+            "s3_resource": self._get_resource(),
+            "s3_client": self._get_client(),
+            "s3_bucket": self._get_bucket(),
+        }
     
     def _get_bucket_key(self) -> str:
         """Get s3 bucket key, create from defaults if not present."""
@@ -164,14 +174,14 @@ class MirrorPath:
     def replace_key_segments(self, segments: List[KeySegment]) -> MirrorPath:
         """Replace key segments."""
         new_key = replace_key_segments(self.s3_key, segments)
-        return MirrorPath.from_s3_key(new_key)
+        return MirrorPath.from_s3_key(new_key, **self._get_env_dict())
 
     def replace_key_segments_at_relative_depth(
         self, segments: List[KeySegment]
     ) -> MirrorPath:
         """Replace key segments at relative depth."""
         new_key = replace_key_segments_at_relative_depth(self.s3_key, segments)
-        return MirrorPath.from_s3_key(new_key)
+        return MirrorPath.from_s3_key(new_key, **self._get_env_dict())
 
     def get_sibling(self, sibling_name: str) -> MirrorPath:
         """Get a file with the same parent as this file."""
