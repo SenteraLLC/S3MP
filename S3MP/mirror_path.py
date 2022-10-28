@@ -124,11 +124,7 @@ class MirrorPath:
     def is_file_on_s3(self) -> bool:
         """Check if is a file on s3."""
         bucket = self._get_bucket()
-        try:
-            s3_obj = bucket.Object(self.s3_key)
-        except Exception:
-            self.s3_key += "/"
-            s3_obj = bucket.Object(self.s3_key)
+        s3_obj = bucket.Object(self.s3_key)
 
         return s3_obj.content_type != "application/x-directory"
 
