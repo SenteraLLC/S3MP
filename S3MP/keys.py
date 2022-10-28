@@ -61,7 +61,12 @@ def replace_key_segments(key: str, segments: List[KeySegment]) -> str:
         if new_depth >= len(key_segments):
             key_segments.append("")
         key_segments[segment.depth] = segment.name
-    return "/".join(key_segments)
+    
+    # TODO there's a pathlib way to handle this 
+    ret = "/".join(key_segments)
+    while (ret[-2] == "/") and (ret[-1] == "/"):
+        ret = ret[:-1]
+    return ret
 
 
 def replace_key_segments_at_relative_depth(key: str, segments: List[KeySegment]) -> str:
