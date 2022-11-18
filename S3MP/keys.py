@@ -63,6 +63,8 @@ def replace_key_segments(key: str, segments: List[KeySegment]) -> str:
         key_segments[segment.depth] = segment.name
     
     # TODO there's a pathlib way to handle this 
+    while key_segments[-1] == "":
+        key_segments.pop()
     ret = "/".join(key_segments)
     while (ret[-2] == "/") and (ret[-1] == "/"):
         ret = ret[:-1]
