@@ -218,17 +218,29 @@ class MirrorPath:
         # if not self.is_file_on_s3() and self.s3_key[-1] != "/":
         #     self.s3_key += "/"
         bucket.objects.filter(Prefix=self.s3_key).delete()
-        # objects = bucket.objects.filter(Prefix=self.s3_key)
-        # print(f"Deleting {len(list(objects))} objects.")
-        # for obj in objects:
-        #     obj.delete()
     
     def delete_local(self):
         """Delete local file."""
+        if not self.local_path.exists():
+            return 
         if self.local_path.is_dir():
+            for path in self.local_path.iterdir():
+                path.unlink()
             self.local_path.rmdir()
         else:
             self.local_path.unlink()
+    
+    def delete_s3(self):
+        """Delete s3 file."""
+        if self.is_file_on_s3():
+            self.delete_self_on_s3()
+        else:
+            self.delete_children_on_s3()
+    
+    def delete_all(self):
+        """Delete all files."""
+        self.delete_local()
+        self.delete_s3()
 
     def load_local(self, download: bool = True, load_fn: Callable = None, overwrite: bool = False):
         """
