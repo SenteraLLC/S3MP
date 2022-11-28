@@ -1,6 +1,7 @@
 """S3 Mirror pathing management."""
 from __future__ import annotations
 import functools
+import botocore.exceptions
 import cv2
 import json
 import os
@@ -126,7 +127,13 @@ class MirrorPath:
         bucket = self._get_bucket()
         s3_obj = bucket.Object(self.s3_key)
 
-        return s3_obj.content_type != "application/x-directory"
+        try:
+            return s3_obj.content_type != "application/x-directory"
+        except botocore.exceptions.ClientError:
+            if self.exists_on_s3():
+                return True
+            else:
+                raise FileNotFoundError(f"File {self.s3_key} not found on S3.")
 
     def download_to_mirror(self, overwrite: bool = False):
         """Download S3 file to mirror."""
