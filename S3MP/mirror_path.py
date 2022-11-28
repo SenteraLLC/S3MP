@@ -131,8 +131,9 @@ class MirrorPath:
             return s3_obj.content_type != "application/x-directory"
         except botocore.exceptions.ClientError as e:
             if self.exists_on_s3():
-                return False
+                return False 
             else:
+                # We should really never hit this point.
                 raise FileNotFoundError(f"File {self.s3_key} not found on S3.") from e
 
     def download_to_mirror(self, overwrite: bool = False):
@@ -239,6 +240,8 @@ class MirrorPath:
     
     def delete_s3(self):
         """Delete s3 file."""
+        if not self.exists_on_s3():
+            return
         if self.is_file_on_s3():
             self.delete_self_on_s3()
         else:
