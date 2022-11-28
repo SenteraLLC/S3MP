@@ -129,11 +129,11 @@ class MirrorPath:
 
         try:
             return s3_obj.content_type != "application/x-directory"
-        except botocore.exceptions.ClientError:
+        except botocore.exceptions.ClientError as e:
             if self.exists_on_s3():
-                return True
+                return False
             else:
-                raise FileNotFoundError(f"File {self.s3_key} not found on S3.")
+                raise FileNotFoundError(f"File {self.s3_key} not found on S3.") from e
 
     def download_to_mirror(self, overwrite: bool = False):
         """Download S3 file to mirror."""
