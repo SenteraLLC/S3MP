@@ -49,12 +49,14 @@ def build_s3_key(segments: List[KeySegment]) -> Tuple[str, int]:
     return path, depth
 
 
-def replace_key_segments(key: str, segments: List[KeySegment]) -> str:
+def replace_key_segments(key: str, segments: List[KeySegment], max_len: int = None) -> str:
     """Replace segments of a key with new segments."""
     if type(segments) == KeySegment:
         segments = [segments]
     segments = sorted(segments, key=lambda x: x.depth)
     key_segments = key.split("/")
+    if max_len is not None:
+        key_segments = key_segments[:max_len]
     og_key_len = len(key_segments)
     for segment in segments:
         new_depth = segment.depth + og_key_len - 1

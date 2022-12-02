@@ -179,9 +179,18 @@ class MirrorPath:
     def upload_from_mirror_if_not_present(self):
         """Upload from mirror if not present on S3."""
         self.upload_from_mirror(overwrite=False)
+    
+    def trim(self, max_depth) -> MirrorPath:
+        """Trim key from s3 key."""
+        segments = self.s3_key.split("/")
+        if len(segments) > max_depth:
+            segments = segments[:max_depth]
+        trimmed_key = "/".join(segments)
+        return MirrorPath.from_s3_key(trimmed_key, **self._get_env_dict())
 
     def replace_key_segments(self, segments: List[KeySegment]) -> MirrorPath:
         """Replace key segments."""
+        # TODO decide if this is the best way to handle this.
         new_key = replace_key_segments(self.s3_key, segments)
         return MirrorPath.from_s3_key(new_key, **self._get_env_dict())
 
