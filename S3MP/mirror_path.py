@@ -187,6 +187,11 @@ class MirrorPath:
             segments = segments[:max_depth]
         trimmed_key = "/".join(segments)
         return MirrorPath.from_s3_key(trimmed_key, **self._get_env_dict())
+    
+    def get_key_segment(self, index: int) -> str:
+        """Get key segment."""
+        segments = self.s3_key.split("/")
+        return segments[index]
 
     def replace_key_segments(self, segments: List[KeySegment]) -> MirrorPath:
         """Replace key segments."""
