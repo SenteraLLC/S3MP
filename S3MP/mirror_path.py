@@ -97,6 +97,11 @@ class MirrorPath:
             bucket_key = self._get_bucket_key()
             self.s3_bucket = s3_resource.Bucket(bucket_key)
         return self.s3_bucket
+    
+    def _guarantee_trailing_slash(self):
+        """Guarantee trailing slash."""
+        if self.s3_key[-1] != "/":
+            self.s3_key += "/"
 
     @staticmethod
     def from_s3_key(s3_key: str, **kwargs: Dict) -> "MirrorPath":
@@ -218,6 +223,7 @@ class MirrorPath:
     
     def get_children_on_s3(self) -> List[MirrorPath]:
         """Get all children on s3."""
+        self._guarantee_trailing_slash()
         bucket = self._get_bucket()
         objects = bucket.objects.filter(Prefix=self.s3_key, Delimiter="/")
         return [MirrorPath.from_s3_key(obj.key) for obj in objects]
