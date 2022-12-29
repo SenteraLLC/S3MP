@@ -1,5 +1,6 @@
 """S3 Mirror pathing management."""
 from __future__ import annotations
+from copy import copy, deepcopy
 import functools
 import botocore.exceptions
 import cv2
@@ -9,7 +10,7 @@ from mypy_boto3_s3 import S3Client
 import numpy as np
 from typing import Callable, Dict, List, Tuple
 from pathlib import Path
-from S3MP.global_config import S3MPConfig
+from S3MP.global_config import S3MPConfig, get_env_mirror_root
 from S3MP.keys import (
     KeySegment,
     get_matching_s3_keys,
@@ -24,35 +25,9 @@ from S3MP.utils.local_file_utils import (
     delete_local_path,
 )
 
-from S3MP.utils.s3_utils import delete_key_on_s3, download_key, key_exists_on_s3, key_is_file_on_s3, upload_to_key
+from S3MP.utils.s3_utils import delete_key_on_s3, download_key, key_exists_on_s3, key_is_file_on_s3, s3_list_child_keys, upload_to_key
 
 
-def get_env_file_path() -> Path:
-    """Get the mirror root from .env file."""
-    root_module_folder = Path(__file__).parent.parent.resolve()
-    env_file = root_module_folder / ".env"
-    if not os.path.exists(f"{env_file}"):
-        raise FileNotFoundError("No .env file found.")
-
-    return env_file
-
-
-def set_env_mirror_root(mirror_root: Path) -> None:
-    """Set the mirror root in the .env file."""
-    env_file = get_env_file_path()
-    with open(f"{env_file}", "w") as f:
-        f.write(f"MIRROR_ROOT={mirror_root}")
-
-
-def get_env_mirror_root() -> Path:
-    """Get the mirror root from .env file."""
-    if S3MPConfig.mirror_root is not None:
-        return Path(S3MPConfig.mirror_root)
-    env_file = get_env_file_path()
-    with open(f"{env_file}", "r") as f:
-        mirror_root = f.read().strip().replace("MIRROR_ROOT=", "")
-
-    return Path(mirror_root)
 
 
 class MirrorPath:
@@ -64,7 +39,8 @@ class MirrorPath:
         mirror_root: Path = None,
     ):
         """Init."""
-        self.key_segments = key_segments
+        # Solving issues before they happen
+        self.key_segments = [seg.__copy__() for seg in key_segments]
 
         if mirror_root is None:
             mirror_root = get_env_mirror_root()
@@ -98,7 +74,7 @@ class MirrorPath:
     def __copy__(self):
         """Copy."""
         return MirrorPath( 
-            [seg.__copy__() for seg in self.key_segments],
+            self.key_segments,
             **self.__dict__
         )
 
@@ -141,29 +117,29 @@ class MirrorPath:
 
     def trim(self, max_depth) -> MirrorPath:
         """Trim key from s3 key."""
-        segments = self.s3_key.split("/")
-        if len(segments) > max_depth:
-            segments = segments[:max_depth]
-        trimmed_key = "/".join(segments)
-        return MirrorPath.from_s3_key(trimmed_key, **self._get_env_dict())
+        return MirrorPath(self.key_segments[:max_depth])
 
-    def get_key_segment(self, index: int) -> str:
+    def get_key_segment(self, index: int) -> KeySegment:
         """Get key segment."""
-        segments = self.s3_key.split("/")
-        return segments[index]
+        return self.key_segments[index]
 
-    def replace_key_segments(self, segments: List[KeySegment]) -> MirrorPath:
+    def replace_key_segments(self, replace_segments: List[KeySegment]) -> MirrorPath:
         """Replace key segments."""
-        # TODO decide if this is the best way to handle this.
-        new_key = replace_key_segments(self.s3_key, segments)
-        return MirrorPath.from_s3_key(new_key, **self._get_env_dict())
+        new_segments = self.key_segments[:]
+        for seg in replace_segments:
+            while seg.depth > len(new_segments):
+                new_segments.append(KeySegment(len(new_segments) - 1, ""))
+            new_segments[seg.depth] = seg
+        return MirrorPath(new_segments)
 
     def replace_key_segments_at_relative_depth(
-        self, segments: List[KeySegment]
+        self, replace_segments: List[KeySegment]
     ) -> MirrorPath:
         """Replace key segments at relative depth."""
-        new_key = replace_key_segments_at_relative_depth(self.s3_key, segments)
-        return MirrorPath.from_s3_key(new_key, **self._get_env_dict())
+        replace_segments = [seg.__copy__() for seg in replace_segments]
+        for seg in replace_segments:
+            seg.depth += len(self.key_segments) - 1
+        return self.replace_key_segments(replace_segments)
 
     def get_sibling(self, sibling_name: str) -> MirrorPath:
         """Get a file with the same parent as this file."""
@@ -177,15 +153,14 @@ class MirrorPath:
 
     def get_children_on_s3(self) -> List[MirrorPath]:
         """Get all children on s3."""
-        self._guarantee_trailing_slash()
-        bucket = self._get_bucket()
-        objects = bucket.objects.filter(Prefix=self.s3_key, Delimiter="/")
-        return [MirrorPath.from_s3_key(obj.key) for obj in objects]
+        return [ 
+            MirrorPath.from_s3_key(obj.key) for obj in 
+            s3_list_child_keys(self.s3_key)["Contents"]
+        ]
 
     def get_parent(self) -> MirrorPath:
         """Get the parent of this file."""
-        stripped_key = "/".join([seg for seg in self.s3_key.split("/") if seg][:-1])
-        return MirrorPath.from_s3_key(stripped_key)
+        return MirrorPath(self.key_segments[:-1])
 
     def delete_local(self):
         """Delete local file."""
@@ -232,10 +207,3 @@ class MirrorPath:
         save_fn(data)
         if upload:
             self.upload_from_mirror(overwrite)
-
-
-
-# # TODO find better spot for this.
-# def get_matching_s3_mirror_paths(segments: List[KeySegment]) -> List[MirrorPath]:
-#     """Case get_matching_s3_keys to MirrorPath."""
-#     return [MirrorPath.from_s3_key(key) for key in get_matching_s3_keys(segments)]

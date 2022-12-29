@@ -5,6 +5,32 @@ from typing import Callable
 import boto3
 from S3MP.types import S3Client, S3Resource, S3Bucket, S3TransferConfig
 
+def get_env_file_path() -> Path:
+    """Get the mirror root from .env file."""
+    root_module_folder = Path(__file__).parent.parent.resolve()
+    env_file = root_module_folder / ".env"
+    if not env_file.exists():
+        raise FileNotFoundError("No .env file found.")
+
+    return env_file
+
+def set_env_mirror_root(mirror_root: Path) -> None:
+    """Set the mirror root in the .env file."""
+    env_file = get_env_file_path()
+    with open(f"{env_file}", "w") as f:
+        f.write(f"MIRROR_ROOT={mirror_root}")
+
+
+def get_env_mirror_root() -> Path:
+    """Get the mirror root from .env file."""
+    if S3MPConfig.mirror_root is not None:
+        return Path(S3MPConfig.mirror_root)
+    env_file = get_env_file_path()
+    with open(f"{env_file}", "r") as f:
+        mirror_root = f.read().strip().replace("MIRROR_ROOT=", "")
+
+    return Path(mirror_root)
+    
 
 class Singleton(type):
     # Singleton metaclass 
