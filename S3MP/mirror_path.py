@@ -17,8 +17,10 @@ from S3MP.keys import (
     replace_key_segments_at_relative_depth,
 )
 from S3MP.types import S3Bucket, S3Resource
+import tempfile
+from S3MP.utils.local_file_utils import DEFAULT_LOAD_LEDGER, DEFAULT_SAVE_LEDGER, delete_local_path
 
-from S3MP.utils.s3_utils import key_exists_on_s3, key_is_file_on_s3
+from S3MP.utils.s3_utils import delete_key_on_s3, key_exists_on_s3, key_is_file_on_s3
 
 
 def get_env_file_path() -> Path:
@@ -223,39 +225,13 @@ class MirrorPath:
         stripped_key = "/".join([seg for seg in self.s3_key.split("/") if seg][:-1])
         return MirrorPath.from_s3_key(stripped_key)
     
-    def delete_self_on_s3(self):
-        """Delete self on s3."""
-        bucket = self._get_bucket()
-        s3_obj = bucket.Object(key=self.s3_key)
-        s3_obj.delete()
-    
-    def delete_children_on_s3(self):
-        """Delete all children on s3."""
-        bucket = self._get_bucket()
-        ## TODO centralized trailing slashes and the like.
-        # if not self.is_file_on_s3() and self.s3_key[-1] != "/":
-        #     self.s3_key += "/"
-        bucket.objects.filter(Prefix=self.s3_key).delete()
-    
     def delete_local(self):
         """Delete local file."""
-        if not self.local_path.exists():
-            return 
-        if self.local_path.is_dir():
-            for path in self.local_path.iterdir():
-                path.unlink()
-            self.local_path.rmdir()
-        else:
-            self.local_path.unlink()
+        delete_local_path(self.local_path)
     
     def delete_s3(self):
         """Delete s3 file."""
-        if not self.exists_on_s3():
-            return
-        if self.is_file_on_s3():
-            self.delete_self_on_s3()
-        else:
-            self.delete_children_on_s3()
+        delete_key_on_s3(self.s3_key, self._get_bucket(), self._get_client())
     
     def delete_all(self):
         """Delete all files."""
@@ -267,86 +243,31 @@ class MirrorPath:
         Load local file, infer file type and load.
         Setting download to false will still download if the file is not present.
         """
-        if download or not self.exists_in_mirror():
+        if download or overwrite or not self.exists_in_mirror():
             self.download_to_mirror(overwrite)
         if load_fn is None:
-            match (self.local_path.suffix):
-                case ".json":
+            suffix = self.local_path.suffix[1:].lower()
+            load_fn = DEFAULT_LOAD_LEDGER[suffix]
 
-                    def _load_fn(path):
-                        with open(path, "r") as fd:
-                            return json.load(fd)
-
-                    load_fn = _load_fn
-                case ".npy":
-                    load_fn = np.load
-                case ".jpg" | ".jpeg" | ".png":
-                    load_fn = cv2.imread
-
-        data = load_fn(str(self.local_path))
-        return data
+        return load_fn(str(self.local_path))
 
     def save_local(self, data, upload: bool = True, save_fn: Callable = None, overwrite: bool = False):
         """Save local file, infer file type and upload."""
         if not self.local_path.parent.exists():
             self.local_path.parent.mkdir(parents=True)
         if save_fn is None:
-            match (self.local_path.suffix):
-                case ".json":
-                    def _save_fn(_data):
-                        with open(str(self.local_path), "w") as fd:
-                            json.dump(_data, fd)
+            suffix = self.local_path.suffix[1:].lower()
+            save_fn = DEFAULT_SAVE_LEDGER[suffix]
 
-                    save_fn = _save_fn
-                case ".npy":
-                    save_fn = lambda _data: np.save(str(self.local_path), _data)
-                case ".jpg" | ".jpeg" | ".png":
-                    def _save_fn(_data):
-                        cv2.imwrite(str(self.local_path), _data)
-                    save_fn = _save_fn
         save_fn(data)
         if upload:
             self.upload_from_mirror(overwrite)
-
-    @staticmethod
-    def get_s3_key_size_bytes(s3_key: str) -> int:
-        """Get the size of an S3 key in bytes."""
-        s3_resource = S3MPConfig.s3_resource
-        bucket_key = S3MPConfig.default_bucket_key
-        return s3_resource.Object(bucket_key, s3_key).content_length
-
-    @staticmethod
-    def get_local_file_size_bytes(local_path: Path) -> int:
-        """Get the size of a local file in bytes."""
-        return local_path.stat().st_size
-
-    @staticmethod
-    def get_transfer_size_bytes(transfer_obj, is_download: bool):
-        """Get the size of a transfer in bytes."""
-        if isinstance(transfer_obj, MirrorPath):
-            return transfer_obj.get_size_bytes(is_download)
-        if is_download:
-            MirrorPath.get_s3_key_size_bytes(transfer_obj)
-        return MirrorPath.get_local_file_size_bytes(transfer_obj)
-
-    def get_size_bytes(self, on_s3: bool = True) -> int:
-        """Get size of self in bytes."""
-        if on_s3 and self.exists_on_s3():
-            return MirrorPath.get_s3_key_size_bytes(self.s3_key)
-        elif self.exists_in_mirror():
-            return MirrorPath.get_local_file_size_bytes(self.local_path)
-        raise FileNotFoundError(f"File {self} not found.")
-
-    def update_current_callback_on_skipped_transfer(self, is_download: bool):
-        """Update the current callback if a transfer gets skipped."""
-        if S3MPConfig.callback and self in S3MPConfig.callback._transfer_objs:
-            S3MPConfig.callback(self.get_size_bytes(is_download))
 
     def __repr__(self):
         """Repr."""
         return f"{self.__class__.__name__}({self.s3_key}, {self.local_path}, {self.s3_bucket_key})"
 
-# TODO find better spot for this.
-def get_matching_s3_mirror_paths(segments: List[KeySegment]) -> List[MirrorPath]:
-    """Case get_matching_s3_keys to MirrorPath."""
-    return [MirrorPath.from_s3_key(key) for key in get_matching_s3_keys(segments)]
+# # TODO find better spot for this.
+# def get_matching_s3_mirror_paths(segments: List[KeySegment]) -> List[MirrorPath]:
+#     """Case get_matching_s3_keys to MirrorPath."""
+#     return [MirrorPath.from_s3_key(key) for key in get_matching_s3_keys(segments)]
