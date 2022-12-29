@@ -15,6 +15,16 @@ def s3_list_single_key(
         Bucket=bucket.name, Prefix=key, Delimiter="/", MaxKeys=1
     )
 
+def s3_list_child_keys(
+    key: str,
+    bucket: S3Bucket = S3MPConfig.bucket,
+    client: S3Client = S3MPConfig.s3_client,
+) -> S3ListObjectV2Output:
+    """List details of all child keys on S3."""
+    return client.list_objects_v2(
+        Bucket=bucket.name, Prefix=key, Delimiter="/"
+    )
+
 def download_key(
     key: str,
     local_path: Path,
@@ -26,8 +36,7 @@ def download_key(
         local_path.mkdir(parents=True, exist_ok=True)
         client.download_file(bucket.name, key, str(local_path))
     else:
-        objs = client.list_objects_v2(Bucket=bucket.name, Prefix=key, Delimiter="/")["Contents"]
-        for obj in objs:
+        for obj in s3_list_child_keys(key, bucket, client)["Contents"]:
             download_key(obj["Key"], local_path / obj["Key"].replace(key, ""))
     
 def upload_to_key(
@@ -78,7 +87,7 @@ def delete_child_keys_on_s3(
     client: S3Client = S3MPConfig.s3_client,
 ) -> None:
     """Delete all keys that are children of a key on S3."""
-    for obj in client.list_objects_v2(Bucket=bucket.name, Prefix=key)["Contents"]:
+    for obj in s3_list_child_keys(key, bucket, client)["Contents"]:
         client.delete_object(Bucket=bucket.name, Key=obj["Key"])
 
 
