@@ -3,6 +3,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
+  - aioboto3
   - boto3
   - boto3-stubs
   - botocore
@@ -15,3 +16,5 @@ dependencies:
   - python
   - setuptools
   - tqdm
+  - pip: 
+    - opencv-python

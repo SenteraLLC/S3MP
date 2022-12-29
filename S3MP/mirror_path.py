@@ -1,24 +1,9 @@
 """S3 Mirror pathing management."""
 from __future__ import annotations
-from copy import copy, deepcopy
-import functools
-import botocore.exceptions
-import cv2
-import json
-import os
-from mypy_boto3_s3 import S3Client
-import numpy as np
-from typing import Callable, Dict, List, Tuple
+from typing import Callable, Dict, List
 from pathlib import Path
 from S3MP.global_config import S3MPConfig, get_env_mirror_root
-from S3MP.keys import (
-    KeySegment,
-    get_matching_s3_keys,
-    replace_key_segments,
-    replace_key_segments_at_relative_depth,
-)
-from S3MP.types import S3Bucket, S3Resource
-import tempfile
+from S3MP.keys import KeySegment
 from S3MP.utils.local_file_utils import (
     DEFAULT_LOAD_LEDGER,
     DEFAULT_SAVE_LEDGER,
@@ -26,8 +11,6 @@ from S3MP.utils.local_file_utils import (
 )
 
 from S3MP.utils.s3_utils import delete_key_on_s3, download_key, key_exists_on_s3, key_is_file_on_s3, s3_list_child_keys, upload_to_key
-
-
 
 
 class MirrorPath:
