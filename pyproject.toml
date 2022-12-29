@@ -1,0 +1,24 @@
+[project]
+name = "S3MP"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Joshua Dean", email = "joshua.dean@sentera.com"}
+]
+dependencies = [ 
+    "boto3",
+    "boto3-stubs",
+    "botocore",
+    "future",
+    "mypy-boto3-s3",
+    "numpy",
+    "pip",
+    "pyparsing",
+    "pyproj",
+    "python",
+    "setuptools",
+    "tqdm",
+]
+
+[tool.setuptools]
+py-modules = ["S3MP"]
