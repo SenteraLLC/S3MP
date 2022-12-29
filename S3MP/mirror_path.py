@@ -24,7 +24,7 @@ from S3MP.utils.local_file_utils import (
     delete_local_path,
 )
 
-from S3MP.utils.s3_utils import delete_key_on_s3, key_exists_on_s3, key_is_file_on_s3
+from S3MP.utils.s3_utils import delete_key_on_s3, download_key, key_exists_on_s3, key_is_file_on_s3, upload_to_key
 
 
 def get_env_file_path() -> Path:
@@ -147,6 +147,20 @@ class MirrorPath:
         """Get local path."""
         return Path(S3MPConfig.mirror_root) / self.s3_key
 
+    @staticmethod
+    def from_s3_key(s3_key: str, **kwargs: Dict) -> MirrorPath:
+        """Create a MirrorPath from an s3 key."""
+        key_segments = [KeySegment(idx, s) for idx, s in enumerate(s3_key.split('/'))]
+        return MirrorPath(key_segments, **kwargs)
+    
+    @staticmethod
+    def from_local_path(local_path: Path, mirror_root: Path = None, **kwargs: Dict) -> MirrorPath:
+        """Create a MirrorPath from a local path."""
+        if not mirror_root:
+            mirror_root = get_env_mirror_root()
+        s3_key = local_path.relative_to(mirror_root).as_posix()
+        return MirrorPath.from_s3_key(s3_key, **kwargs)
+
 
     def exists_in_mirror(self) -> bool:
         """Check if file exists in mirror."""
@@ -163,24 +177,8 @@ class MirrorPath:
     def download_to_mirror(self, overwrite: bool = False):
         """Download S3 file to mirror."""
         if not overwrite and self.exists_in_mirror():
-            self.update_current_callback_on_skipped_transfer(True)
             return
-        local_folder = self.local_path.parent
-        local_folder.mkdir(parents=True, exist_ok=True)
-
-        bucket = self._get_bucket()
-        if self.is_file_on_s3():
-            bucket.download_file(
-                self.s3_key,
-                str(self.local_path),
-                Callback=S3MPConfig.callback,
-                Config=S3MPConfig.transfer_config,
-            )
-        else:  # Folder, so download all.
-            objects = bucket.objects.filter(Prefix=self.s3_key)
-            for obj in objects:
-                obj_mp = MirrorPath.from_s3_key(obj.key)
-                obj_mp.download_to_mirror(overwrite=overwrite)
+        download_key(self.s3_key, self.local_path)
 
     def download_to_mirror_if_not_present(self):
         """Download to mirror if not present in mirror."""
@@ -189,15 +187,8 @@ class MirrorPath:
     def upload_from_mirror(self, overwrite: bool = False):
         """Upload local file to S3."""
         if not overwrite and self.exists_on_s3():
-            self.update_current_callback_on_skipped_transfer(False)
             return
-        bucket = self._get_bucket()
-        bucket.upload_file(
-            str(self.local_path),
-            self.s3_key,
-            Callback=S3MPConfig.callback,
-            Config=S3MPConfig.transfer_config,
-        )
+        upload_to_key(self.s3_key, self.local_path)
 
     def upload_from_mirror_if_not_present(self):
         """Upload from mirror if not present on S3."""

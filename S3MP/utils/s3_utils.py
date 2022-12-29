@@ -1,4 +1,5 @@
 """Utilities for working with S3."""
+from pathlib import Path
 from S3MP.global_config import S3MPConfig
 from S3MP.types import S3Bucket, S3Client, S3ListObjectV2Output
 from botocore.exceptions import ClientError
@@ -14,6 +15,33 @@ def s3_list_single_key(
         Bucket=bucket.name, Prefix=key, Delimiter="/", MaxKeys=1
     )
 
+def download_key(
+    key: str,
+    local_path: Path,
+    bucket: S3Bucket = S3MPConfig.bucket,
+    client: S3Client = S3MPConfig.s3_client,
+) -> None:
+    """Download a key from S3."""
+    if key_is_file_on_s3(key, bucket, client):
+        local_path.mkdir(parents=True, exist_ok=True)
+        client.download_file(bucket.name, key, str(local_path))
+    else:
+        objs = client.list_objects_v2(Bucket=bucket.name, Prefix=key, Delimiter="/")["Contents"]
+        for obj in objs:
+            download_key(obj["Key"], local_path / obj["Key"].replace(key, ""))
+    
+def upload_to_key(
+    key: str,
+    local_path: Path,
+    bucket: S3Bucket = S3MPConfig.bucket,
+    client: S3Client = S3MPConfig.s3_client,
+) -> None:
+    """Upload a file or folder to a key on S3."""
+    if local_path.is_file():
+        client.upload_file(str(local_path), bucket.name, key)
+    else:
+        for child in local_path.iterdir():
+            upload_to_key(f"{key}/{child.name}", child, bucket, client)
 
 def key_exists_on_s3(
     key: str, bucket: S3Bucket = None, client: S3Client = None
