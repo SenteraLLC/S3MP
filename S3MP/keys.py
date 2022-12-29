@@ -12,7 +12,9 @@ class KeySegment:
     depth: int
     name: str = None
     is_file: bool = False  # Most things are folders.
-    incomplete_name: str = None  # Used when searching for part of a key segment (i.e. a file extension).
+    incomplete_name: str = (
+        None  # Used when searching for part of a key segment (i.e. a file extension).
+    )
 
     def __call__(self, *args, **kwargs):
         """Set data via calling."""
@@ -24,6 +26,10 @@ class KeySegment:
             self.incomplete_name = str(kwargs["incomplete_name"])
 
         return self  # For chaining
+
+    def __copy__(self):
+        """Copy."""
+        return KeySegment(self.depth, self.name, self.is_file, self.incomplete_name)
 
 
 def get_arbitrary_keys_from_names(names: List[str]) -> List[KeySegment]:
@@ -49,7 +55,9 @@ def build_s3_key(segments: List[KeySegment]) -> Tuple[str, int]:
     return path, depth
 
 
-def replace_key_segments(key: str, segments: List[KeySegment], max_len: int = None) -> str:
+def replace_key_segments(
+    key: str, segments: List[KeySegment], max_len: int = None
+) -> str:
     """Replace segments of a key with new segments."""
     if type(segments) == KeySegment:
         segments = [segments]
@@ -63,8 +71,8 @@ def replace_key_segments(key: str, segments: List[KeySegment], max_len: int = No
         if new_depth >= len(key_segments):
             key_segments.append("")
         key_segments[segment.depth] = segment.name
-    
-    # TODO there's a pathlib way to handle this 
+
+    # TODO there's a pathlib way to handle this
     while key_segments[-1] == "":
         key_segments.pop()
     ret = "/".join(key_segments)
@@ -188,4 +196,3 @@ def get_matching_s3_keys(segments: List[KeySegment]) -> List[str]:
         current_paths = itertools.chain(*new_paths)
 
     return list(current_paths)
-
