@@ -18,23 +18,40 @@ class Singleton(type):
 @dataclass
 class S3MPConfig(metaclass=Singleton):
     """Singleton class for S3MP globals."""
-    s3_client: S3Client = boto3.client("s3")
-    s3_resource: S3Resource = boto3.resource("s3")
-    mirror_root: Path = None 
+    _s3_client: S3Client = None
+    _s3_resource: S3Resource = None
+    _bucket: S3Bucket = None
+
     default_bucket_key: str = None
-    default_bucket: S3Bucket = None 
+    mirror_root: Path = None
     transfer_config: S3TransferConfig = None
     callback: Callable = None
     use_async_global_thread_queue: bool = True
 
-    def get_bucket(self, bucket_key: str = None) -> S3Bucket:
+    @property
+    def s3_client(self) -> S3Client:
+        """Get S3 client."""
+        if not self._s3_client:
+            self._s3_client = boto3.client("s3")
+        return self._s3_client
+    
+    @property
+    def s3_resource(self) -> S3Resource:
+        """Get S3 resource."""
+        if not self._s3_resource:
+            self._s3_resource = boto3.resource("s3")
+        return self._s3_resource
+    
+    @property
+    def bucket(self, bucket_key: str = None) -> S3Bucket:
+        """Get bucket."""
         if bucket_key:
             return self.s3_resource.Bucket(bucket_key)
-        elif self.default_bucket is None:
+        elif self._bucket is None:
             if self.default_bucket_key is None:
                 raise ValueError("No default bucket key set.")
-            self.default_bucket = self.s3_resource.Bucket(self.default_bucket_key)
-        return self.default_bucket
+            self._bucket = self.s3_resource.Bucket(self.default_bucket_key)
+        return self._bucket
 
 
 S3MPConfig = S3MPConfig() 

@@ -18,6 +18,8 @@ from S3MP.keys import (
 )
 from S3MP.types import S3Bucket, S3Resource
 
+from S3MP.utils.s3_utils import key_exists_on_s3, key_is_file_on_s3
+
 
 def get_env_file_path() -> Path:
     """Get the mirror root from .env file."""
@@ -123,23 +125,11 @@ class MirrorPath:
 
     def exists_on_s3(self) -> bool:
         """Check if file exists on S3."""
-        bucket = self._get_bucket()
-        results = bucket.objects.filter(Prefix=self.s3_key)
-        return len(list(results)) > 0
+        return key_exists_on_s3(self.s3_key, self._get_bucket())
     
     def is_file_on_s3(self) -> bool:
         """Check if is a file on s3."""
-        bucket = self._get_bucket()
-        s3_obj = bucket.Object(self.s3_key)
-
-        try:
-            return s3_obj.content_type != "application/x-directory"
-        except botocore.exceptions.ClientError as e:
-            if self.exists_on_s3():
-                return False 
-            else:
-                # We should really never hit this point.
-                raise FileNotFoundError(f"File {self.s3_key} not found on S3.") from e
+        return key_is_file_on_s3(self.s3_key, self._get_bucket())
 
     def download_to_mirror(self, overwrite: bool = False):
         """Download S3 file to mirror."""
