@@ -15,7 +15,6 @@ dependencies = [
     "pip",
     "pyparsing",
     "pyproj",
-    "python",
     "setuptools",
     "tqdm",
 ]
