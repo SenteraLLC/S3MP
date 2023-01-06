@@ -21,3 +21,6 @@ dependencies = [
 
 [tool.setuptools]
 py-modules = ["S3MP"]
+packages = [
+    'S3MP'
+]
