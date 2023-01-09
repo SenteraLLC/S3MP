@@ -33,7 +33,7 @@ def download_key(
 ) -> None:
     """Download a key from S3."""
     if key_is_file_on_s3(key, bucket, client):
-        local_path.mkdir(parents=True, exist_ok=True)
+        local_path.parent.mkdir(parents=True, exist_ok=True)
         client.download_file(bucket.name, key, str(local_path))
     else:
         for obj in s3_list_child_keys(key, bucket, client)["Contents"]:
