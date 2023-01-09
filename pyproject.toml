@@ -1,6 +1,6 @@
 [project]
 name = "S3MP"
-version = "0.2.0"
+version = "0.2.1"
 description = ""
 authors = [
     {name = "Joshua Dean", email = "joshua.dean@sentera.com"}
