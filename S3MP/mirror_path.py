@@ -23,7 +23,7 @@ class MirrorPath:
     ):
         """Init."""
         # Solving issues before they happen
-        self.key_segments = [seg.__copy__() for seg in key_segments]
+        self.key_segments: List[KeySegment] = [seg.__copy__() for seg in key_segments]
 
         if mirror_root is None:
             mirror_root = get_env_mirror_root()
@@ -33,7 +33,7 @@ class MirrorPath:
         """Get s3 key."""
         ret_key = "/".join([str(s) for s in self.key_segments])
         # We'll infer folder/file based on extension
-        return ret_key if '.' in self.key_segments[-1] else f"{ret_key}/"
+        return ret_key if '.' in self.key_segments[-1].name else f"{ret_key}/"
     
     @property
     def local_path(self) -> Path:
