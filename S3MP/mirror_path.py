@@ -137,7 +137,7 @@ class MirrorPath:
     def get_children_on_s3(self) -> List[MirrorPath]:
         """Get all children on s3."""
         return [ 
-            MirrorPath.from_s3_key(obj.key) for obj in 
+            MirrorPath.from_s3_key(obj.Key) for obj in 
             s3_list_child_keys(self.s3_key)["Contents"]
         ]
 
