@@ -187,6 +187,6 @@ class MirrorPath:
             suffix = self.local_path.suffix[1:].lower()
             save_fn = DEFAULT_SAVE_LEDGER[suffix]
 
-        save_fn(data)
+        save_fn(str(self.local_path), data)
         if upload:
             self.upload_from_mirror(overwrite)
