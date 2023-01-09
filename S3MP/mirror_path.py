@@ -110,7 +110,7 @@ class MirrorPath:
         """Replace key segments."""
         new_segments = self.key_segments[:]
         for seg in replace_segments:
-            while seg.depth > len(new_segments):
+            while seg.depth >= len(new_segments):
                 new_segments.append(KeySegment(len(new_segments) - 1, ""))
             new_segments[seg.depth] = seg
         return MirrorPath(new_segments)
