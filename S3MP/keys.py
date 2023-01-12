@@ -20,7 +20,7 @@ class KeySegment:
     def __call__(self, *args, **kwargs):
         """Set data via calling."""
         if len(args) == 1 and type(args[0]) in [str, StrEnum]:
-            self.name = args[0]
+            self.name = str(args[0])
         if "name" in kwargs:
             self.name = str(kwargs["name"])
         if "incomplete_name" in kwargs:
