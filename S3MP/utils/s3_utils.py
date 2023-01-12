@@ -53,7 +53,7 @@ def upload_to_key(
             upload_to_key(f"{key}/{child.name}", child, bucket, client)
 
 def key_exists_on_s3(
-    key: str, bucket: S3Bucket = None, client: S3Client = None
+    key: str, bucket: S3Bucket = S3MPConfig.bucket, client: S3Client = S3MPConfig.s3_client
 ) -> bool:
     """Check if a key exists on S3."""
     res = s3_list_single_key(key, bucket, client)
