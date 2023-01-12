@@ -1,4 +1,5 @@
 """S3 key modification utilities."""
+from enum import StrEnum
 import itertools
 from dataclasses import dataclass
 from typing import List, Tuple
@@ -18,7 +19,7 @@ class KeySegment:
 
     def __call__(self, *args, **kwargs):
         """Set data via calling."""
-        if len(args) == 1 and type(args[0]) == str:
+        if len(args) == 1 and type(args[0]) in [str, StrEnum]:
             self.name = args[0]
         if "name" in kwargs:
             self.name = str(kwargs["name"])
