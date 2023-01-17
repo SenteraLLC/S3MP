@@ -151,7 +151,7 @@ class MirrorPath:
 
     def delete_s3(self):
         """Delete s3 file."""
-        delete_key_on_s3(self.s3_key, self._get_bucket(), self._get_client())
+        delete_key_on_s3(self.s3_key)
 
     def delete_all(self):
         """Delete all files."""
