@@ -19,6 +19,7 @@ class KeySegment:
 
     def __call__(self, *args, **kwargs):
         """Set data via calling."""
+        self = self.__copy__()
         if len(args) == 1:
             if type(args[0]) == str:
                 self.name = args[0] 
