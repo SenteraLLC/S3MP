@@ -53,7 +53,7 @@ def upload_to_key(
             upload_to_key(f"{key}/{child.name}", child, bucket, client)
 
 def key_exists_on_s3(
-    key: str, bucket: S3Bucket = None, client: S3Client = None
+    key: str, bucket: S3Bucket = S3MPConfig.bucket, client: S3Client = S3MPConfig.s3_client
 ) -> bool:
     """Check if a key exists on S3."""
     res = s3_list_single_key(key, bucket, client)
@@ -73,7 +73,7 @@ def key_is_file_on_s3(
     return "Contents" in res
 
 
-def key_size_on_s3(key: str, bucket: S3Bucket = None, client: S3Client = None) -> int:
+def key_size_on_s3(key: str, bucket: S3Bucket = S3MPConfig.bucket, client: S3Client = S3MPConfig.s3_client) -> int:
     """Get the size of a key on S3. Raises an error if the key does not exist."""
     if not key_exists_on_s3(key, bucket, client):
         raise ValueError("Key does not exist on S3")

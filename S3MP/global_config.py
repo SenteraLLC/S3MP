@@ -1,6 +1,7 @@
 """Set global values for S3MP module."""
 from dataclasses import dataclass
 from pathlib import Path
+import tempfile
 from typing import Callable
 import boto3
 from S3MP.types import S3Client, S3Resource, S3Bucket, S3TransferConfig
@@ -25,7 +26,12 @@ def get_env_mirror_root() -> Path:
     """Get the mirror root from .env file."""
     if S3MPConfig.mirror_root is not None:
         return Path(S3MPConfig.mirror_root)
-    env_file = get_env_file_path()
+    try:
+        env_file = get_env_file_path()
+    except FileNotFoundError:
+        print("No .env file found, using temporary directory as mirror root.")
+        return Path(tempfile.gettempdir())
+        
     with open(f"{env_file}", "r") as f:
         mirror_root = f.read().strip().replace("MIRROR_ROOT=", "")
 

@@ -92,3 +92,9 @@ for s3_key in get_matching_s3_keys(segments):
     output_mp.upload_from_mirror()
 ```
 Although the "Setup Paths" section looks a little dense, overall this example is doing a lot of work. This grabs every key from the base `2020` directory down to every `.png` file at the specified depth, produces the new path (and key) based on the scheme for each one, and then downloads, processes, and uploads each file. As a bonus, all of the processed files remain in the local mirror, and all download functions have `overwrite` parameters, so this can act as a cache if necessary. 
+
+
+## Environmental Setup
+
+To specify the local directory to store the mirror at, use the `set_env_mirror_root` function in `global_config.py`. This will create a `.env` file in the root of the package, and will be loaded on import. 
+If no mirror root is specified and no `.env` file is found, a temporary directory will be used.
