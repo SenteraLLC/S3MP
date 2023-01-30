@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Callable, Dict, List
 from pathlib import Path
 from S3MP.global_config import S3MPConfig, get_env_mirror_root
-from S3MP.keys import KeySegment
+from S3MP.keys import KeySegment, get_matching_s3_keys
 from S3MP.utils.local_file_utils import (
     DEFAULT_LOAD_LEDGER,
     DEFAULT_SAVE_LEDGER,
@@ -43,6 +43,7 @@ class MirrorPath:
     @staticmethod
     def from_s3_key(s3_key: str, **kwargs: Dict) -> MirrorPath:
         """Create a MirrorPath from an s3 key."""
+        s3_key = s3_key.removesuffix('/')
         key_segments = [KeySegment(idx, s) for idx, s in enumerate(s3_key.split('/'))]
         return MirrorPath(key_segments, **kwargs)
     
@@ -190,3 +191,12 @@ class MirrorPath:
         save_fn(str(self.local_path), data)
         if upload:
             self.upload_from_mirror(overwrite)
+
+def get_matching_s3_mirror_paths(
+    segments: List[KeySegment]
+):
+    """Get matching S3 mirror paths."""
+    return [ 
+        MirrorPath.from_s3_key(key)
+        for key in get_matching_s3_keys(segments)
+    ]
