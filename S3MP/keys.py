@@ -29,6 +29,10 @@ class KeySegment:
             self.name = str(kwargs["name"])
         if "incomplete_name" in kwargs:
             self.incomplete_name = str(kwargs["incomplete_name"])
+        if "depth" in kwargs:
+            self.depth = int(kwargs["depth"])
+        if "is_file" in kwargs:
+            self.is_file = bool(kwargs["is_file"])
 
         return self  # For chaining
 
