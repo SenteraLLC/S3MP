@@ -182,8 +182,10 @@ class MirrorPath:
         overwrite: bool = False,
     ):
         """Save local file, infer file type and upload."""
-        if not self.local_path.parent.exists():
-            self.local_path.parent.mkdir(parents=True)
+        try:
+            self.local_path.parent.mkdir(parents=True, exist_ok=True)
+        except FileExistsError:  # handle for race conditions
+            pass    
         if save_fn is None:
             suffix = self.local_path.suffix[1:].lower()
             save_fn = DEFAULT_SAVE_LEDGER[suffix]
