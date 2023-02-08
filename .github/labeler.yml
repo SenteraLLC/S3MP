@@ -1,0 +1,5 @@
+bug:
+- any: ['fix/*', 'bugfix/*', 'hotfix/*']
+
+enhancement:
+- any: ['feature/*', 'enhancement/*']

@@ -1,0 +1,23 @@
+name: Label PR
+
+# Controls when the workflow will run
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [ opened ] 
+    branches: [ '*' ]
+
+
+# Tag jobs
+jobs:
+  label-pr:
+    if: github.event.pull_request.opened == true
+    runs-on: ubuntu-latest 
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+    - uses: actions/labeler@v4
+      with: 
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        configuration-path: .github/labeler.yml
