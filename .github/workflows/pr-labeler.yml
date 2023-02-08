@@ -1,0 +1,22 @@
+name: PR Labeler
+
+# Controls when the workflow will run
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [ opened ] 
+    branches: [ '*' ]
+
+
+# Tag jobs
+jobs:
+  pr-labeler:
+    runs-on: ubuntu-latest 
+    permissions:
+      contents: read 
+      pull-requests: write
+    steps:
+      - uses: TimonVS/pr-labeler-action@v4
+        with: 
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          congiruation-path: .github/pr-labeler.yml
