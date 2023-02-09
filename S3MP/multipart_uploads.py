@@ -56,7 +56,8 @@ def resume_multipart_upload(
             assert(all(part.size == part_size for part in mpu_parts[:-1]))
 
             f.seek(part_size * n_uploaded_parts)
-            S3MPConfig.callback(part_size * n_uploaded_parts)
+            if S3MPConfig.callback:
+                S3MPConfig.callback(part_size * n_uploaded_parts)
             thread_futures = []
             uploaded_parts = []
             for part_number in range(n_uploaded_parts + 1, n_total_parts + 1):
@@ -71,7 +72,8 @@ def resume_multipart_upload(
                         "PartNumber": u_part.part_number,
                     }
                 )
-                S3MPConfig.callback(part_size)
+                if S3MPConfig.callback:
+                    S3MPConfig.callback(part_size)
 
     obj = mpu.complete(
         MultipartUpload=mpu_dict
