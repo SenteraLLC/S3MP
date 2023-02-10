@@ -24,6 +24,7 @@ class MirrorPath:
         """Init."""
         # Solving issues before they happen
         self.key_segments: List[KeySegment] = [seg.__copy__() for seg in key_segments]
+        self._local_path_override: Path = None
 
         if mirror_root is None:
             mirror_root = get_env_mirror_root()
@@ -38,7 +39,11 @@ class MirrorPath:
     @property
     def local_path(self) -> Path:
         """Get local path."""
-        return Path(S3MPConfig.mirror_root) / self.s3_key
+        return self._local_path_override or Path(S3MPConfig.mirror_root) / self.s3_key
+    
+    def override_local_path(self, local_path: Path):
+        """Override local path."""
+        self._local_path_override = local_path
 
     @staticmethod
     def from_s3_key(s3_key: str, **kwargs: Dict) -> MirrorPath:

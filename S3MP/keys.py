@@ -1,5 +1,5 @@
 """S3 key modification utilities."""
-from enum import StrEnum
+from enum import Enum
 import itertools
 from dataclasses import dataclass
 from typing import List, Tuple
@@ -23,22 +23,31 @@ class KeySegment:
         if len(args) == 1:
             if type(args[0]) == str:
                 self.name = args[0] 
-            elif isinstance(args[0], StrEnum):
-                self.name = str(args[0])
-        if "name" in kwargs:
-            self.name = str(kwargs["name"])
-        if "incomplete_name" in kwargs:
-            self.incomplete_name = str(kwargs["incomplete_name"])
-        if "depth" in kwargs:
-            self.depth = int(kwargs["depth"])
-        if "is_file" in kwargs:
-            self.is_file = bool(kwargs["is_file"])
+            elif isinstance(args[0], Enum):
+                self.name = args[0].value
+            else:
+                try: 
+                    self.name = str(args[0])
+                except:
+                    raise TypeError(f"Cannot convert {args[0]} to str.")
+    
+        for key in self.__dict__.keys():
+            if key in kwargs:
+                setattr(self, key, kwargs[key])
 
         return self  # For chaining
 
     def __copy__(self):
         """Copy."""
         return KeySegment(self.depth, self.name, self.is_file, self.incomplete_name)
+    
+    def copy(self):
+        """Copy."""
+        return self.__copy__()
+    
+    def __repr__(self):
+        """Class representation."""
+        return f"{self.__class__.__name__}(depth={self.depth}, name={self.name}, is_file={self.is_file}, incomplete_name={self.incomplete_name})"
 
 
 def get_arbitrary_keys_from_names(names: List[str]) -> List[KeySegment]:

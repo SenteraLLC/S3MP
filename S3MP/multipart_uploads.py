@@ -1,6 +1,4 @@
 """S3MP multipart uploads."""
-# import asyncio
-# from multiprocessing import Process, Queue
 import concurrent.futures
 import math
 import S3MP
@@ -9,12 +7,13 @@ from S3MP.global_config import S3MPConfig
 from S3MP.transfer_configs import MB
 
 from S3MP.mirror_path import MirrorPath
+from S3MP.types import S3Bucket
 
 
 # TODO prefix optimization
 def get_mpu(mirror_path: MirrorPath):
     """Check if a multipart upload has started."""
-    bucket = mirror_path._get_bucket()
+    bucket: S3Bucket = S3MPConfig.bucket
     mpus = bucket.multipart_uploads.all()
     for mpu in mpus:
         if mpu.key == mirror_path.s3_key:
@@ -36,7 +35,9 @@ def resume_multipart_upload(
     mpu_parts = list(mpu.parts.all())
     mpu_parts.sort(key=lambda part: part.part_number)
 
-    total_size_bytes = mirror_path.get_size_bytes(on_s3=False)
+    # get size bytes
+    total_size_bytes = mirror_path.local_path.stat().st_size
+
     n_uploaded_parts = len(mpu_parts)
     part_size = max(part.size for part in mpu_parts)
     n_total_parts = math.ceil(total_size_bytes / part_size)
@@ -55,7 +56,8 @@ def resume_multipart_upload(
             assert(all(part.size == part_size for part in mpu_parts[:-1]))
 
             f.seek(part_size * n_uploaded_parts)
-            S3MPConfig.callback(part_size * n_uploaded_parts)
+            if S3MPConfig.callback:
+                S3MPConfig.callback(part_size * n_uploaded_parts)
             thread_futures = []
             uploaded_parts = []
             for part_number in range(n_uploaded_parts + 1, n_total_parts + 1):
@@ -70,7 +72,8 @@ def resume_multipart_upload(
                         "PartNumber": u_part.part_number,
                     }
                 )
-                S3MPConfig.callback(part_size)
+                if S3MPConfig.callback:
+                    S3MPConfig.callback(part_size)
 
     obj = mpu.complete(
         MultipartUpload=mpu_dict
