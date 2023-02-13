@@ -83,10 +83,16 @@ class MirrorPath:
     def is_file_on_s3(self) -> bool:
         """Check if is a file on s3."""
         return key_is_file_on_s3(self.s3_key)
+    
+    def update_callback_on_skipped_transfer(self):
+        """Update the current global callback if the transfer gets skipped."""
+        if S3MPConfig.callback and self in S3MPConfig.callback._transfer_objs:
+            S3MPConfig.callback(self.local_path.stat().st_size)
 
     def download_to_mirror(self, overwrite: bool = False):
         """Download S3 file to mirror."""
         if not overwrite and self.exists_in_mirror():
+            self.update_callback_on_skipped_transfer()
             return
         download_key(self.s3_key, self.local_path)
 
@@ -97,6 +103,7 @@ class MirrorPath:
     def upload_from_mirror(self, overwrite: bool = False):
         """Upload local file to S3."""
         if not overwrite and self.exists_on_s3():
+            self.update_callback_on_skipped_transfer()
             return
         upload_to_key(self.s3_key, self.local_path)
 

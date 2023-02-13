@@ -34,7 +34,7 @@ def download_key(
     """Download a key from S3."""
     if key_is_file_on_s3(key, bucket, client):
         local_path.parent.mkdir(parents=True, exist_ok=True)
-        client.download_file(bucket.name, key, str(local_path))
+        client.download_file(bucket.name, key, str(local_path), Callback=S3MPConfig.callback, Config=S3MPConfig.transfer_config)
     else:
         for obj in s3_list_child_keys(key, bucket, client)["Contents"]:
             download_key(obj["Key"], local_path / obj["Key"].replace(key, ""))
@@ -47,7 +47,7 @@ def upload_to_key(
 ) -> None:
     """Upload a file or folder to a key on S3."""
     if local_path.is_file():
-        client.upload_file(str(local_path), bucket.name, key)
+        client.upload_file(str(local_path), bucket.name, key, Callback=S3MPConfig.callback, Config=S3MPConfig.transfer_config)
     else:
         for child in local_path.iterdir():
             upload_to_key(f"{key}/{child.name}", child, bucket, client)
