@@ -7,7 +7,7 @@ import os
 import tqdm
 
 from S3MP.mirror_path import MirrorPath
-from S3MP.types import SList
+from S3MP.types import SList, S3Resource
 
 
 class FileSizeTQDMCallback(tqdm.tqdm):
@@ -16,7 +16,7 @@ class FileSizeTQDMCallback(tqdm.tqdm):
     def __init__(
         self,
         transfer_objs: SList[Path | str | MirrorPath],
-        resource=None,
+        resource: S3Resource = None,
         bucket_key=None,
         is_download: bool = True,
     ):
@@ -36,10 +36,17 @@ class FileSizeTQDMCallback(tqdm.tqdm):
             bucket_key = S3MPConfig.default_bucket_key
         if not isinstance(transfer_objs, list):
             transfer_objs = [transfer_objs]
-        self._total_bytes = sum(
-            MirrorPath.get_transfer_size_bytes(transfer_mapping, is_download)
-            for transfer_mapping in transfer_objs
-        )
+        
+
+        self._total_bytes = 0
+        for transfer_mapping in transfer_objs:
+            if is_download:
+                s3_key = transfer_mapping.s3_key if isinstance(transfer_mapping, MirrorPath) else transfer_mapping
+                self._total_bytes += resource.Object(bucket_key, s3_key).content_length
+            else:
+                local_path = transfer_mapping.local_path if isinstance(transfer_mapping, MirrorPath) else transfer_mapping
+                self._total_bytes += local_path.stat().st_size
+
 
         transfer_str = "Download" if is_download else "Upload"
         super().__init__(
