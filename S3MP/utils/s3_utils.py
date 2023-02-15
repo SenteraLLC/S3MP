@@ -69,7 +69,8 @@ def key_is_file_on_s3(
     """Check if a key is a file on S3, returns false if it is a folder. Raises an error if the key does not exist."""
     if not key_exists_on_s3(key, bucket, client):
         raise ValueError("Key does not exist on S3")
-    res = s3_list_single_key(key, bucket, client)
+    key_mod = key[:-1] if key.endswith("/") else key
+    res = s3_list_single_key(key_mod, bucket, client)
     return "Contents" in res
 
 
