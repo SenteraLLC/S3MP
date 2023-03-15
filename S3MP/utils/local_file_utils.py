@@ -3,8 +3,6 @@ from pathlib import Path
 from typing import Dict
 from numpy.typing import ArrayLike
 import json
-import numpy as np
-import cv2
 
 def get_local_file_size_bytes(path: Path) -> int:
     """Get the size of a local file in bytes."""
@@ -30,14 +28,14 @@ def load_json(path: str) -> Dict:
         return json.load(f)
 
 
-def load_image(path: str) -> ArrayLike:
-    """Load an image file."""
-    return cv2.imread(path)
+# def load_image(path: str) -> ArrayLike:
+#     """Load an image file."""
+#     return cv2.imread(path)
 
 
-def load_numpy(path: str) -> ArrayLike:
-    """Load a numpy file."""
-    return np.load(path)
+# def load_numpy(path: str) -> ArrayLike:
+#     """Load a numpy file."""
+#     return np.load(path)
 
 
 DEFAULT_LOAD_LEDGER = {

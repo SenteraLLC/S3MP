@@ -12,8 +12,6 @@ dependencies = [
     "botocore",
     "future",
     "mypy-boto3-s3",
-    "numpy",
-    "opencv-python",
     "pip",
     "pyparsing",
     "pyproj",
