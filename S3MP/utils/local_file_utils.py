@@ -1,7 +1,6 @@
 """Utilities for loading local files."""
 from pathlib import Path
 from typing import Dict
-from numpy.typing import ArrayLike
 import json
 
 def get_local_file_size_bytes(path: Path) -> int:
