@@ -1,4 +1,5 @@
 """Set global values for S3MP module."""
+from configparser import ConfigParser
 from dataclasses import dataclass
 from pathlib import Path
 import tempfile
@@ -6,33 +7,11 @@ from typing import Callable
 import boto3
 from S3MP.types import S3Client, S3Resource, S3Bucket, S3TransferConfig
 
-def get_env_file_path() -> Path:
-    """Get the location of the .env file."""
+def get_config_file_path() -> Path:
+    """Get the location of the config file."""
     root_module_folder = Path(__file__).parent.resolve()
-    return root_module_folder / ".env"
+    return root_module_folder / "config.ini"
 
-def set_env_mirror_root(mirror_root: Path) -> None:
-    """Set the mirror root in the .env file."""
-    env_file = get_env_file_path()
-    with open(f"{env_file}", "w") as f:
-        f.write(f"MIRROR_ROOT={mirror_root}")
-
-
-def get_env_mirror_root() -> Path:
-    """Get the mirror root from .env file."""
-    if S3MPConfig.mirror_root is not None:
-        return Path(S3MPConfig.mirror_root)
-    env_file_path = get_env_file_path()
-    try:
-        with open(f"{env_file_path}", "r") as f:
-            mirror_root = f.read().strip().replace("MIRROR_ROOT=", "")
-    except FileNotFoundError:
-        print("No .env file found, using temporary directory as mirror root.")
-        return Path(tempfile.gettempdir())
-        
-
-    return Path(mirror_root)
-    
 
 class Singleton(type):
     # Singleton metaclass 
@@ -46,12 +25,16 @@ class Singleton(type):
 @dataclass
 class S3MPConfig(metaclass=Singleton):
     """Singleton class for S3MP globals."""
+    # Boto3 Objects
     _s3_client: S3Client = None
     _s3_resource: S3Resource = None
     _bucket: S3Bucket = None
 
+    # Config Items
     default_bucket_key: str = None
-    mirror_root: Path = None
+    _mirror_root: Path = None
+
+    # Other Items
     transfer_config: S3TransferConfig = None
     callback: Callable = None
     use_async_global_thread_queue: bool = True
@@ -80,6 +63,46 @@ class S3MPConfig(metaclass=Singleton):
                 raise ValueError("No default bucket key set.")
             self._bucket = self.s3_resource.Bucket(self.default_bucket_key)
         return self._bucket
+    
+    @property
+    def mirror_root(self) -> Path:
+        """Get mirror root."""
+        if self._mirror_root is None:
+            print("Mirror Root not set, a temporary directory will be used as the mirror root.")
+            self._mirror_root = Path(tempfile.gettempdir())
+        return self._mirror_root
+    
+    def load_config(self, config_file_path: Path = None):
+        """Load the config file."""
+        config_file_path = config_file_path or get_config_file_path()
+        config = ConfigParser()
+
+        try: 
+            config.read(config_file_path)
+        except FileNotFoundError:
+            print("No config file found, using default values.")
+            return 
+        
+        if "DEFAULT" not in config:
+            return 
+        
+        if "default_bucket_key" in config["DEFAULT"]:
+            self.default_bucket_key = config["DEFAULT"]["default_bucket_key"]
+        
+        if "mirror_root" in config["DEFAULT"]:
+            self._mirror_root = Path(config["DEFAULT"]["mirror_root"])
+    
+    def save_config(self):
+        """Write config file."""
+        config_file_path = get_config_file_path()
+        config = ConfigParser()
+        config['DEFAULT'] = {}
+        if self.default_bucket_key:
+            config['DEFAULT']['default_bucket_key'] = self.default_bucket_key
+        if self._mirror_root:
+            config['DEFAULT']['mirror_root'] = str(self._mirror_root)
+        with open(config_file_path, 'w') as configfile:
+            config.write(configfile)
 
 
 S3MPConfig = S3MPConfig() 
