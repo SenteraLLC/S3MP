@@ -92,9 +92,9 @@ class S3MPConfig(metaclass=Singleton):
         if "mirror_root" in config["DEFAULT"]:
             self._mirror_root = Path(config["DEFAULT"]["mirror_root"])
     
-    def save_config(self):
+    def save_config(self, config_file_path: Path = None):
         """Write config file."""
-        config_file_path = get_config_file_path()
+        config_file_path = config_file_path or get_config_file_path()
         config = ConfigParser()
         config['DEFAULT'] = {}
         if self.default_bucket_key:
