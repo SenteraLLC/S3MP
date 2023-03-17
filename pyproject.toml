@@ -1,6 +1,6 @@
 [project]
 name = "S3MP"
-version = "0.4.2"
+version = "0.4.3"
 description = ""
 authors = [
     {name = "Joshua Dean", email = "joshua.dean@sentera.com"}
@@ -12,8 +12,6 @@ dependencies = [
     "botocore",
     "future",
     "mypy-boto3-s3",
-    "numpy",
-    "opencv-python",
     "pip",
     "pyparsing",
     "pyproj",
