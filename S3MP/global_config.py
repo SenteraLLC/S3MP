@@ -76,12 +76,7 @@ class S3MPConfig(metaclass=Singleton):
         """Load the config file."""
         config_file_path = config_file_path or get_config_file_path()
         config = ConfigParser()
-
-        try: 
-            config.read(config_file_path)
-        except FileNotFoundError:
-            print("No config file found, using default values.")
-            return 
+        config.read(config_file_path)
         
         if "DEFAULT" not in config:
             return 
@@ -106,3 +101,4 @@ class S3MPConfig(metaclass=Singleton):
 
 
 S3MPConfig = S3MPConfig() 
+S3MPConfig.load_config()
