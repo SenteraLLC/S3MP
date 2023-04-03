@@ -2,7 +2,7 @@
 from __future__ import annotations
 from typing import Callable, Dict, List
 from pathlib import Path
-from S3MP.global_config import S3MPConfig, get_env_mirror_root
+from S3MP.global_config import S3MPConfig
 from S3MP.keys import KeySegment, get_matching_s3_keys
 from S3MP.utils.local_file_utils import (
     DEFAULT_LOAD_LEDGER,
@@ -26,8 +26,7 @@ class MirrorPath:
         self.key_segments: List[KeySegment] = [seg.__copy__() for seg in key_segments]
         self._local_path_override: Path = None
 
-        if mirror_root is None:
-            mirror_root = get_env_mirror_root()
+        self.mirror_root = mirror_root or S3MPConfig.mirror_root
     
     @property
     def s3_key(self) -> str:
@@ -55,8 +54,7 @@ class MirrorPath:
     @staticmethod
     def from_local_path(local_path: Path, mirror_root: Path = None, **kwargs: Dict) -> MirrorPath:
         """Create a MirrorPath from a local path."""
-        if not mirror_root:
-            mirror_root = get_env_mirror_root()
+        mirror_root = mirror_root or S3MPConfig.mirror_root
         s3_key = local_path.relative_to(mirror_root).as_posix()
         return MirrorPath.from_s3_key(s3_key, **kwargs)
     
