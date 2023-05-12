@@ -19,6 +19,11 @@ dependencies = [
     "tqdm",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
 [tool.setuptools]
 py-modules = ["S3MP"]
 packages = [

@@ -1,4 +1,4 @@
-name: s3mp-venv
+﻿name: s3mp-dev-venv
 channels:
   - conda-forge
   - defaults
@@ -12,6 +12,7 @@ dependencies:
   - pip
   - pyparsing
   - pyproj
+  - pytest
   - python
   - setuptools
   - tqdm
