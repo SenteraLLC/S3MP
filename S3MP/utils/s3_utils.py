@@ -1,4 +1,5 @@
 """Utilities for working with S3."""
+import warnings
 from pathlib import Path
 from S3MP.global_config import S3MPConfig
 from S3MP.types import S3Bucket, S3Client, S3ListObjectV2Output
@@ -23,6 +24,8 @@ def s3_list_child_keys(
     client: S3Client = None,
 ) -> S3ListObjectV2Output:
     """List details of all child keys on S3."""
+    if not key.endswith("/"):
+        warnings.warn(f"Listing child keys of {key} - key does not end with '/'")
     bucket = bucket or S3MPConfig.bucket
     client = client or S3MPConfig.s3_client
     return client.list_objects_v2(
