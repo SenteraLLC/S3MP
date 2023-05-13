@@ -115,6 +115,14 @@ def test_folders_files():
     ]
     for key in keys_that_should_exist:
         assert key_exists_on_s3(key, bucket, client)
+    
+    keys_that_should_not_exist = [
+        'test_folder/test_file_1/',
+        'test_folder/test_file_2/',
+        'test_folder/nonempty_subfolder/test_file_3/',
+    ]
+    for key in keys_that_should_not_exist:
+        assert not key_exists_on_s3(key, bucket, client)
 
     keys_that_are_files = [ 
         'test_folder/test_file_1',
