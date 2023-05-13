@@ -86,6 +86,13 @@ def key_is_file_on_s3(
     if not key_exists_on_s3(key, bucket, client):
         raise ValueError("Key does not exist on S3")
     res = s3_list_single_key(key, bucket, client)
+    # Handle case of trailing slash, but still verify
+    if (
+        key[-1] == "/"
+        and len(res['Contents']) == 1
+        and res['Contents'][0]['Key'] == key
+    ):  
+        return False
     return "Contents" in res
 
 

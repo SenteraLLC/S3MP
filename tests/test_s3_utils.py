@@ -6,7 +6,7 @@ import boto3
 import contextlib
 from S3MP.types import S3Client
 
-from S3MP.utils.s3_utils import s3_list_child_keys
+from S3MP.utils.s3_utils import key_exists_on_s3, key_is_file_on_s3, s3_list_child_keys
 
 TESTING_BUCKET_NAME = "s3mp-testing"
 
@@ -100,7 +100,42 @@ def test_folders_files():
         child_folders,
         ['test_folder/empty_subfolder/', 'test_folder/nonempty_subfolder/'],
     )
+
+    # Test folder and file existences
+    keys_that_should_exist = [
+        'test_folder/test_file_1',
+        'test_folder/test_file_2',
+        'test_folder',
+        'test_folder/',
+        'test_folder/nonempty_subfolder',
+        'test_folder/nonempty_subfolder/',
+        'test_folder/nonempty_subfolder/test_file_3',
+        'test_folder/empty_subfolder',
+        'test_folder/empty_subfolder/',
+    ]
+    for key in keys_that_should_exist:
+        assert key_exists_on_s3(key, bucket, client)
+
+    keys_that_are_files = [ 
+        'test_folder/test_file_1',
+        'test_folder/test_file_2',
+        'test_folder/nonempty_subfolder/test_file_3',
+    ]
+    for key in keys_that_are_files:
+        assert key_is_file_on_s3(key, bucket, client)
     
+    keys_that_are_folders = [ 
+        'test_folder',
+        'test_folder/',
+        'test_folder/nonempty_subfolder',
+        'test_folder/nonempty_subfolder/',
+        'test_folder/empty_subfolder',
+        'test_folder/empty_subfolder/',
+    ]
+    for key in keys_that_are_folders:
+        assert not key_is_file_on_s3(key, bucket, client)
+
+
 
 if __name__ == "__main__":
     test_folders_files()
