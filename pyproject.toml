@@ -1,6 +1,6 @@
 [project]
 name = "S3MP"
-version = "0.5.0"
+version = "0.5.1"
 description = ""
 authors = [
     {name = "Joshua Dean", email = "joshua.dean@sentera.com"}
@@ -17,6 +17,11 @@ dependencies = [
     "pyproj",
     "setuptools",
     "tqdm",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
 ]
 
 [tool.setuptools]
