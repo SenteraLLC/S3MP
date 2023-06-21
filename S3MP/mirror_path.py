@@ -150,13 +150,7 @@ class MirrorPath:
 
     def get_children_on_s3(self) -> List[MirrorPath]:
         """Get all children on s3."""
-        resp = s3_list_child_keys(self.s3_key)
-        child_s3_keys = [] 
-        # TODO decide if s3_utils is a better spot for this 
-        if 'Contents' in resp:
-            child_s3_keys = [obj['Key'] for obj in resp['Contents'] if obj['Key'] != self.s3_key]
-        if 'CommonPrefixes' in resp:
-            child_s3_keys += [obj['Prefix'] for obj in resp['CommonPrefixes']]
+        child_s3_keys = s3_list_child_keys(self.s3_key)
         return [MirrorPath.from_s3_key(s3_key) for s3_key in child_s3_keys]
 
     def get_parent(self) -> MirrorPath:
