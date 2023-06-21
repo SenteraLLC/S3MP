@@ -1,4 +1,5 @@
 """Utilities for working with S3."""
+from typing import List
 import warnings
 from pathlib import Path
 from S3MP.global_config import S3MPConfig
@@ -22,15 +23,25 @@ def s3_list_child_keys(
     key: str,
     bucket: S3Bucket = None,
     client: S3Client = None,
-) -> S3ListObjectV2Output:
+) -> List[str]:
     """List details of all child keys on S3."""
     if not key.endswith("/"):
         warnings.warn(f"Listing child keys of {key} - key does not end with '/'")
     bucket = bucket or S3MPConfig.bucket
     client = client or S3MPConfig.s3_client
-    return client.list_objects_v2(
+
+    paginator = client.get_paginator("list_objects_v2")
+    page_iterator = paginator.paginate(
         Bucket=bucket.name, Prefix=key, Delimiter="/"
     )
+
+    child_keys = []
+    for page in page_iterator:
+        if page.get("Contents"):
+            child_keys.extend([obj["Key"] for obj in page["Contents"]])
+        
+    return child_keys
+
 
 def download_key(
     key: str,
