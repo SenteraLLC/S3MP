@@ -1,8 +1,11 @@
 """S3 Mirror pathing management."""
 from __future__ import annotations
+import concurrent.futures
 from typing import Callable, Dict, List
 from pathlib import Path
+from tqdm import tqdm
 import shutil
+import psutil
 from S3MP.global_config import S3MPConfig
 from S3MP.keys import KeySegment, get_matching_s3_keys
 from S3MP.utils.local_file_utils import (
@@ -248,3 +251,26 @@ def get_matching_s3_mirror_paths(
         MirrorPath.from_s3_key(key)
         for key in get_matching_s3_keys(segments)
     ]
+
+
+def multithread_download_mps_to_mirror(
+    mps: list[MirrorPath], overwrite: bool = False
+):
+    """Download a list of MirrorPaths to the local mirror."""
+    n_procs = psutil.cpu_count(logical=False)
+    proc_executor = concurrent.futures.ProcessPoolExecutor(max_workers=n_procs)
+    all_proc_futures: list[concurrent.futures.Future] = []
+    pbar = tqdm(total=len(mps), desc="Downloading to mirror")  # Init pbar
+    for mp in mps:
+        pf = proc_executor.submit(mp.download_to_mirror, overwrite=overwrite)
+        all_proc_futures.append(pf)
+
+    # Increment pbar as processes finish
+    for _ in concurrent.futures.as_completed(all_proc_futures):
+        pbar.update(n=1)
+
+    all_proc_futures_except = [pf for pf in all_proc_futures if pf.exception()]
+    for pf in all_proc_futures_except:
+        raise pf.exception()
+
+    proc_executor.shutdown(wait=True)
