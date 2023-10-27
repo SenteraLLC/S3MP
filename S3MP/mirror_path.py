@@ -2,6 +2,7 @@
 from __future__ import annotations
 from typing import Callable, Dict, List
 from pathlib import Path
+import shutil
 from S3MP.global_config import S3MPConfig
 from S3MP.keys import KeySegment, get_matching_s3_keys
 from S3MP.utils.local_file_utils import (
@@ -207,6 +208,37 @@ class MirrorPath:
         save_fn(str(self.local_path), data)
         if upload:
             self.upload_from_mirror(overwrite)
+
+    def copy_to_mp_s3_only(self, dest_mp: MirrorPath):
+        """Copy this file from S3 to a destination on S3."""
+        S3MPConfig.s3_client.copy_object(
+            CopySource={"Bucket": S3MPConfig.default_bucket_key, "Key": self.s3_key},
+            Bucket=S3MPConfig.default_bucket_key,
+            Key=dest_mp.s3_key,
+        )
+
+    def copy_to_mp_mirror_only(self, dest_mp: MirrorPath):
+        """Copy this file from the mirror to a destination on the mirror."""
+        self.download_to_mirror()
+        shutil.copy(self.local_path, dest_mp.local_path)
+
+    def copy_to_mp(self, dest_mp: MirrorPath, use_mirror_as_src: bool = False):
+        """Copy this file to a destination, on S3 and in the mirror. 
+        
+        By default, assumes the S3 copy is the source of truth.
+        If use_mirror_as_src is True, assumes the mirror is the source of truth.
+        """
+        if use_mirror_as_src:
+            # If we're using the mirror as the source of truth, we copy the file
+            # to the dest mirror, then upload it to S3.
+            self.copy_to_mp_mirror_only(dest_mp)
+            dest_mp.upload_from_mirror(overwrite=True)
+        else:
+            # If we're using S3 as the source of truth, we copy the file from S3
+            # to the dest S3 path, then download it to the dest mirror.
+            self.copy_to_mp_s3_only(dest_mp)
+            dest_mp.download_to_mirror(overwrite=True)
+
 
 def get_matching_s3_mirror_paths(
     segments: List[KeySegment]
