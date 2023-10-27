@@ -142,7 +142,7 @@ class MirrorPath:
         )
 
     def get_child(self, child_name: str) -> MirrorPath:
-        """Get a file with the same parent as this file."""
+        """Get a child of this file."""
         return self.replace_key_segments_at_relative_depth([KeySegment(1, child_name)])
 
     def get_children_on_s3(self) -> List[MirrorPath]:
