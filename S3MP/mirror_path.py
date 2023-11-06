@@ -222,7 +222,6 @@ class MirrorPath:
 
     def copy_to_mp_mirror_only(self, dest_mp: MirrorPath):
         """Copy this file from the mirror to a destination on the mirror."""
-        self.download_to_mirror()
         shutil.copy(self.local_path, dest_mp.local_path)
 
     def copy_to_mp(self, dest_mp: MirrorPath, use_mirror_as_src: bool = False):
