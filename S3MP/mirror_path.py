@@ -1,7 +1,11 @@
 """S3 Mirror pathing management."""
 from __future__ import annotations
+import concurrent.futures
 from typing import Callable, Dict, List
 from pathlib import Path
+from tqdm import tqdm
+import shutil
+import psutil
 from S3MP.global_config import S3MPConfig
 from S3MP.keys import KeySegment, get_matching_s3_keys
 from S3MP.utils.local_file_utils import (
@@ -142,7 +146,7 @@ class MirrorPath:
         )
 
     def get_child(self, child_name: str) -> MirrorPath:
-        """Get a file with the same parent as this file."""
+        """Get a child of this file."""
         return self.replace_key_segments_at_relative_depth([KeySegment(1, child_name)])
 
     def get_children_on_s3(self) -> List[MirrorPath]:
@@ -208,6 +212,36 @@ class MirrorPath:
         if upload:
             self.upload_from_mirror(overwrite)
 
+    def copy_to_mp_s3_only(self, dest_mp: MirrorPath):
+        """Copy this file from S3 to a destination on S3."""
+        S3MPConfig.s3_client.copy_object(
+            CopySource={"Bucket": S3MPConfig.default_bucket_key, "Key": self.s3_key},
+            Bucket=S3MPConfig.default_bucket_key,
+            Key=dest_mp.s3_key,
+        )
+
+    def copy_to_mp_mirror_only(self, dest_mp: MirrorPath):
+        """Copy this file from the mirror to a destination on the mirror."""
+        shutil.copy(self.local_path, dest_mp.local_path)
+
+    def copy_to_mp(self, dest_mp: MirrorPath, use_mirror_as_src: bool = False):
+        """Copy this file to a destination, on S3 and in the mirror. 
+        
+        By default, assumes the S3 copy is the source of truth.
+        If use_mirror_as_src is True, assumes the mirror is the source of truth.
+        """
+        if use_mirror_as_src:
+            # If we're using the mirror as the source of truth, we copy the file
+            # to the dest mirror, then upload it to S3.
+            self.copy_to_mp_mirror_only(dest_mp)
+            dest_mp.upload_from_mirror(overwrite=True)
+        else:
+            # If we're using S3 as the source of truth, we copy the file from S3
+            # to the dest S3 path, then download it to the dest mirror.
+            self.copy_to_mp_s3_only(dest_mp)
+            dest_mp.download_to_mirror(overwrite=True)
+
+
 def get_matching_s3_mirror_paths(
     segments: List[KeySegment]
 ):
@@ -216,3 +250,26 @@ def get_matching_s3_mirror_paths(
         MirrorPath.from_s3_key(key)
         for key in get_matching_s3_keys(segments)
     ]
+
+
+def multithread_download_mps_to_mirror(
+    mps: list[MirrorPath], overwrite: bool = False
+):
+    """Download a list of MirrorPaths to the local mirror."""
+    n_procs = psutil.cpu_count(logical=False)
+    proc_executor = concurrent.futures.ProcessPoolExecutor(max_workers=n_procs)
+    all_proc_futures: list[concurrent.futures.Future] = []
+    pbar = tqdm(total=len(mps), desc="Downloading to mirror")  # Init pbar
+    for mp in mps:
+        pf = proc_executor.submit(mp.download_to_mirror, overwrite=overwrite)
+        all_proc_futures.append(pf)
+
+    # Increment pbar as processes finish
+    for _ in concurrent.futures.as_completed(all_proc_futures):
+        pbar.update(n=1)
+
+    all_proc_futures_except = [pf for pf in all_proc_futures if pf.exception()]
+    for pf in all_proc_futures_except:
+        raise pf.exception()
+
+    proc_executor.shutdown(wait=True)
