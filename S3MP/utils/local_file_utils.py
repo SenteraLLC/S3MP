@@ -1,7 +1,8 @@
 """Utilities for loading local files."""
+import json
 from pathlib import Path
 from typing import Dict
-import json
+
 
 def get_local_file_size_bytes(path: Path) -> int:
     """Get the size of a local file in bytes."""
@@ -18,6 +19,7 @@ def delete_local_path(path: Path):
         else:
             path.unlink()
 
+
 # Load functions
 
 
@@ -30,6 +32,7 @@ def load_json(path: str) -> Dict:
 DEFAULT_LOAD_LEDGER = {
     "json": load_json,
 }
+
 
 # Save functions
 def save_json(path: str, data: Dict, indent: int = 4):

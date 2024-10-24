@@ -1,33 +1,31 @@
-[project]
+[tool.poetry]
 name = "S3MP"
-version = "0.5.2"
-description = ""
+version = "0.5.3"
+description = "S3 Mirror Path"
 authors = [
-    {name = "Joshua Dean", email = "joshua.dean@sentera.com"}
-]
-dependencies = [ 
-    "aioboto3",
-    "boto3",
-    "boto3-stubs",
-    "botocore",
-    "future",
-    "mypy-boto3-s3",
-    "pip",
-    "psutil",
-    "pyparsing",
-    "pyproj",
-    "setuptools",
-    "tqdm",
+    "Joshua Dean <joshua.dean@sentera.com>",
+    "Trevor Burgoyne <trevor.burgoyne@sentera.com>"
 ]
 
-[project.optional-dependencies]
-dev = [
-    "pytest",
-]
+[tool.poetry.dependencies]
+python = ">=3.9"
+aioboto3 = "*"
+boto3 = "*"
+boto3-stubs = "*"
+botocore = "*"
+future = "*"
+mypy-boto3-s3 = "*"
+pip = "*"
+psutil = "*"
+pyparsing = "*"
+pyproj = "*"
+setuptools = "*"
+tqdm = "*"
 
-[tool.setuptools]
-py-modules = ["S3MP"]
-packages = [
-    'S3MP',
-    'S3MP.utils'
-]
+[tool.poetry.dev-dependencies]
+pytest = "*"
+pre_commit = "*"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
