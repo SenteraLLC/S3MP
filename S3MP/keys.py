@@ -1,9 +1,10 @@
 """S3 key modification utilities."""
-from enum import Enum
 import itertools
 from dataclasses import dataclass
+from enum import Enum
 from typing import List, Tuple
-from S3MP.prefix_queries import get_folders_within_folder, get_files_within_folder
+
+from S3MP.prefix_queries import get_files_within_folder, get_folders_within_folder
 
 
 @dataclass
@@ -21,16 +22,16 @@ class KeySegment:
         """Set data via calling."""
         self = self.__copy__()
         if len(args) == 1:
-            if type(args[0]) == str:
-                self.name = args[0] 
+            if isinstance(args[0], str):
+                self.name = args[0]
             elif isinstance(args[0], Enum):
                 self.name = args[0].value
             else:
-                try: 
+                try:
                     self.name = str(args[0])
-                except:
+                except Exception:
                     raise TypeError(f"Cannot convert {args[0]} to str.")
-    
+
         for key in self.__dict__.keys():
             if key in kwargs:
                 setattr(self, key, kwargs[key])
@@ -40,11 +41,11 @@ class KeySegment:
     def __copy__(self):
         """Copy."""
         return KeySegment(self.depth, self.name, self.is_file, self.incomplete_name)
-    
+
     def copy(self):
         """Copy."""
         return self.__copy__()
-    
+
     def __repr__(self):
         """Class representation."""
         return f"{self.__class__.__name__}(depth={self.depth}, name={self.name}, is_file={self.is_file}, incomplete_name={self.incomplete_name})"
@@ -77,7 +78,7 @@ def replace_key_segments(
     key: str, segments: List[KeySegment], max_len: int = None
 ) -> str:
     """Replace segments of a key with new segments."""
-    if type(segments) == KeySegment:
+    if isinstance(segments, KeySegment):
         segments = [segments]
     segments = sorted(segments, key=lambda x: x.depth)
     key_segments = key.split("/")
@@ -102,9 +103,10 @@ def replace_key_segments(
 def replace_key_segments_at_relative_depth(key: str, segments: List[KeySegment]) -> str:
     """
     Replace segments of a key with new segments at a relative depth.
+
     0 would be the deepest segment, -1 would be the second deepest, etc.
     """
-    if type(segments) == KeySegment:
+    if isinstance(segments, KeySegment):
         segments = [segments]
     segments = sorted(segments, key=lambda x: x.depth)
     key_segments = [seg for seg in key.split("/") if seg]
@@ -166,7 +168,7 @@ async def dfs_matching_key_gen(
 def sync_dfs_matching_key_gen(
     segments: List[KeySegment], path: str = None, current_depth: int = None
 ):
-    """Synchronous generation of all matching keys from a path, depth first."""
+    """Generate all matching keys synchronously from a path, depth first."""
     if current_depth is None:
         segments = sorted(segments, key=lambda x: x.depth)
         path, current_depth = build_s3_key(segments)
