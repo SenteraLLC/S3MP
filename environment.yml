@@ -9,6 +9,7 @@ dependencies:
   - botocore
   - future
   - mypy-boto3-s3
+  - pre-commit
   - pip
   - psutil
   - pyparsing
