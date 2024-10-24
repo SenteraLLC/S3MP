@@ -1,9 +1,12 @@
 """Asynchronous transfer utilities."""
-from S3MP.global_config import S3MPConfig
-import aioboto3
 import asyncio
 from typing import Coroutine, List
+
+import aioboto3
+
+from S3MP.global_config import S3MPConfig
 from S3MP.mirror_path import MirrorPath
+
 
 async def async_upload_from_mirror(mirror_path: MirrorPath):
     """Asynchronously upload a file from a MirrorPath."""
