@@ -3,7 +3,7 @@ name = "S3MP"
 version = "0.5.2"
 description = "S3 Mirror Path"
 authors = [
-    "Joshua Dean <joshua.dean@sentera.com>"
+    "Joshua Dean <joshua.dean@sentera.com>",
     "Trevor Burgoyne <trevor.burgoyne@sentera.com>"
 ]
 

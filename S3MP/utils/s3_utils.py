@@ -1,9 +1,9 @@
 """Utilities for working with S3."""
 import warnings
 from pathlib import Path
+
 from S3MP.global_config import S3MPConfig
 from S3MP.types import S3Bucket, S3Client, S3ListObjectV2Output
-from botocore.exceptions import ClientError
 
 
 def s3_list_single_key(
@@ -18,19 +18,27 @@ def s3_list_single_key(
         Bucket=bucket.name, Prefix=key, Delimiter="/", MaxKeys=1
     )
 
+
 def s3_list_child_keys(
     key: str,
-    bucket: S3Bucket = None,
-    client: S3Client = None,
-) -> S3ListObjectV2Output:
+    bucket=None,
+    client=None,
+    continuation_token=None,
+):
     """List details of all child keys on S3."""
     if not key.endswith("/"):
         warnings.warn(f"Listing child keys of {key} - key does not end with '/'")
     bucket = bucket or S3MPConfig.bucket
     client = client or S3MPConfig.s3_client
-    return client.list_objects_v2(
-        Bucket=bucket.name, Prefix=key, Delimiter="/"
-    )
+    params = {
+        "Bucket": bucket.name,
+        "Prefix": key,
+        "Delimiter": "/",
+    }
+    if continuation_token:
+        params["ContinuationToken"] = continuation_token
+    return client.list_objects_v2(**params)
+
 
 def download_key(
     key: str,
@@ -43,11 +51,18 @@ def download_key(
     client = client or S3MPConfig.s3_client
     if key_is_file_on_s3(key, bucket, client):
         local_path.parent.mkdir(parents=True, exist_ok=True)
-        client.download_file(bucket.name, key, str(local_path), Callback=S3MPConfig.callback, Config=S3MPConfig.transfer_config)
+        client.download_file(
+            bucket.name,
+            key,
+            str(local_path),
+            Callback=S3MPConfig.callback,
+            Config=S3MPConfig.transfer_config,
+        )
     else:
         for obj in s3_list_child_keys(key, bucket, client)["Contents"]:
             download_key(obj["Key"], local_path / obj["Key"].replace(key, ""))
-    
+
+
 def upload_to_key(
     key: str,
     local_path: Path,
@@ -58,10 +73,17 @@ def upload_to_key(
     bucket = bucket or S3MPConfig.bucket
     client = client or S3MPConfig.s3_client
     if local_path.is_file():
-        client.upload_file(str(local_path), bucket.name, key, Callback=S3MPConfig.callback, Config=S3MPConfig.transfer_config)
+        client.upload_file(
+            str(local_path),
+            bucket.name,
+            key,
+            Callback=S3MPConfig.callback,
+            Config=S3MPConfig.transfer_config,
+        )
     else:
         for child in local_path.iterdir():
             upload_to_key(f"{key}/{child.name}", child, bucket, client)
+
 
 def key_exists_on_s3(
     key: str,
@@ -76,7 +98,7 @@ def key_exists_on_s3(
 
 
 def key_is_file_on_s3(
-    key: str, 
+    key: str,
     bucket: S3Bucket = None,
     client: S3Client = None,
 ) -> bool:
@@ -89,9 +111,9 @@ def key_is_file_on_s3(
     # Handle case of trailing slash, but still verify
     if (
         key[-1] == "/"
-        and len(res['Contents']) == 1
-        and res['Contents'][0]['Key'] == key
-    ):  
+        and len(res["Contents"]) == 1
+        and res["Contents"][0]["Key"] == key
+    ):
         return False
     return "Contents" in res
 
@@ -100,7 +122,7 @@ def key_size_on_s3(
     key: str,
     bucket: S3Bucket = None,
     client: S3Client = None,
-    ) -> int:
+) -> int:
     """Get the size of a key on S3. Raises an error if the key does not exist."""
     bucket = bucket or S3MPConfig.bucket
     client = client or S3MPConfig.s3_client
@@ -136,4 +158,3 @@ def delete_key_on_s3(
         client.delete_object(Bucket=bucket.name, Key=key)
     else:
         delete_child_keys_on_s3(key, bucket, client)
-    
