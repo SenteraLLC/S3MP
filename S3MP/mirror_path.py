@@ -9,14 +9,14 @@ from typing import Callable, Dict, List
 import psutil
 from tqdm import tqdm
 
-from s3mp.global_config import S3MPConfig
-from s3mp.keys import KeySegment, get_matching_s3_keys
-from s3mp.utils.local_file_utils import (
+from S3MP.global_config import S3MPConfig
+from S3MP.keys import KeySegment, get_matching_s3_keys
+from S3MP.utils.local_file_utils import (
     DEFAULT_LOAD_LEDGER,
     DEFAULT_SAVE_LEDGER,
     delete_local_path,
 )
-from s3mp.utils.s3_utils import (
+from S3MP.utils.s3_utils import (
     delete_key_on_s3,
     download_key,
     key_exists_on_s3,

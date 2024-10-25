@@ -1,3 +1,3 @@
-"""Semantic versioning for s3mp."""
+"""Semantic versioning for S3MP."""
 
-__version__ = "1.0.0"
+__version__ = "0.5.3"

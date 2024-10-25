@@ -1,12 +1,12 @@
-"""s3mp multipart uploads."""
+"""S3MP multipart uploads."""
 import concurrent.futures
 import math
 
-import s3mp  # noqa: F401
-from s3mp.global_config import S3MPConfig
-from s3mp.mirror_path import MirrorPath
-from s3mp.transfer_configs import MB
-from s3mp.types import S3Bucket
+import S3MP  # noqa: F401
+from S3MP.global_config import S3MPConfig
+from S3MP.mirror_path import MirrorPath
+from S3MP.transfer_configs import MB
+from S3MP.types import S3Bucket
 
 
 # TODO prefix optimization

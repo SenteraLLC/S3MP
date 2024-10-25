@@ -1,4 +1,4 @@
-"""Set global values for s3mp module."""
+"""Set global values for S3MP module."""
 import tempfile
 from configparser import ConfigParser
 from dataclasses import dataclass
@@ -7,7 +7,7 @@ from typing import Callable
 
 import boto3
 
-from s3mp.types import S3Bucket, S3Client, S3Resource, S3TransferConfig
+from S3MP.types import S3Bucket, S3Client, S3Resource, S3TransferConfig
 
 
 def get_config_file_path() -> Path:
@@ -30,7 +30,7 @@ class Singleton(type):
 
 @dataclass
 class S3MPConfig(metaclass=Singleton):
-    """Singleton class for s3mp globals."""
+    """Singleton class for S3MP globals."""
 
     # Boto3 Objects
     _s3_client: S3Client = None

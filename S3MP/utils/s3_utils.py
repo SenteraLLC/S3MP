@@ -2,8 +2,8 @@
 import warnings
 from pathlib import Path
 
-from s3mp.global_config import S3MPConfig
-from s3mp.types import S3Bucket, S3Client, S3ListObjectV2Output
+from S3MP.global_config import S3MPConfig
+from S3MP.types import S3Bucket, S3Client, S3ListObjectV2Output
 
 
 def s3_list_single_key(
