@@ -51,7 +51,7 @@ class MirrorPath:
     @staticmethod
     def from_s3_key(s3_key: str, **kwargs: Dict) -> MirrorPath:
         """Create a MirrorPath from an s3 key."""
-        s3_key = s3_key.removesuffix('/')
+        s3_key = s3_key[:-1] if s3_key.endswith("/") else s3_key
         key_segments = [KeySegment(idx, s) for idx, s in enumerate(s3_key.split('/'))]
         return MirrorPath(key_segments, **kwargs)
     
@@ -151,14 +151,28 @@ class MirrorPath:
 
     def get_children_on_s3(self) -> List[MirrorPath]:
         """Get all children on s3."""
-        resp = s3_list_child_keys(self.s3_key)
-        child_s3_keys = [] 
-        # TODO decide if s3_utils is a better spot for this 
-        if 'Contents' in resp:
-            child_s3_keys = [obj['Key'] for obj in resp['Contents'] if obj['Key'] != self.s3_key]
-        if 'CommonPrefixes' in resp:
-            child_s3_keys += [obj['Prefix'] for obj in resp['CommonPrefixes']]
-        return [MirrorPath.from_s3_key(s3_key) for s3_key in child_s3_keys]
+        child_s3_keys = []
+        continuation_token = None
+
+        while True:
+            resp = s3_list_child_keys(
+                self.s3_key, continuation_token=continuation_token
+            )
+
+            # Collect keys from the current response
+            if "Contents" in resp:
+                child_s3_keys.extend(
+                    obj["Key"] for obj in resp["Contents"] if obj["Key"] != self.s3_key
+                )
+            if "CommonPrefixes" in resp:
+                child_s3_keys.extend(obj["Prefix"] for obj in resp["CommonPrefixes"])
+
+            # Check if there are more pages to fetch
+            if "NextContinuationToken" in resp:
+                continuation_token = resp["NextContinuationToken"]
+            else:
+                break
+        return [MirrorPath.from_s3_key(key) for key in child_s3_keys]
 
     def get_parent(self) -> MirrorPath:
         """Get the parent of this file."""
