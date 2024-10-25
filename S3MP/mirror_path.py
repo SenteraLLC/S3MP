@@ -51,7 +51,7 @@ class MirrorPath:
     @staticmethod
     def from_s3_key(s3_key: str, **kwargs: Dict) -> MirrorPath:
         """Create a MirrorPath from an s3 key."""
-        s3_key = s3_key.removesuffix('/')
+        s3_key = s3_key[:-1] if s3_key.endswith("/") else s3_key
         key_segments = [KeySegment(idx, s) for idx, s in enumerate(s3_key.split('/'))]
         return MirrorPath(key_segments, **kwargs)
     
