@@ -20,17 +20,23 @@ def s3_list_single_key(
 
 def s3_list_child_keys(
     key: str,
-    bucket: S3Bucket = None,
-    client: S3Client = None,
-) -> S3ListObjectV2Output:
+    bucket=None,
+    client=None,
+    continuation_token=None,
+):
     """List details of all child keys on S3."""
     if not key.endswith("/"):
         warnings.warn(f"Listing child keys of {key} - key does not end with '/'")
     bucket = bucket or S3MPConfig.bucket
     client = client or S3MPConfig.s3_client
-    return client.list_objects_v2(
-        Bucket=bucket.name, Prefix=key, Delimiter="/"
-    )
+    params = {
+        "Bucket": bucket.name,
+        "Prefix": key,
+        "Delimiter": "/",
+    }
+    if continuation_token:
+        params["ContinuationToken"] = continuation_token
+    return client.list_objects_v2(**params)
 
 def download_key(
     key: str,
