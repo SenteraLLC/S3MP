@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import List, Tuple
 
-from S3MP.prefix_queries import get_files_within_folder, get_folders_within_folder
+from s3mp.prefix_queries import get_files_within_folder, get_folders_within_folder
 
 
 @dataclass

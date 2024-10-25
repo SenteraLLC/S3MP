@@ -1,6 +1,6 @@
 [tool.poetry]
-name = "S3MP"
-version = "0.5.3"
+name = "s3mp"
+version = "1.0.0"
 description = "S3 Mirror Path"
 authors = [
     "Joshua Dean <joshua.dean@sentera.com>",

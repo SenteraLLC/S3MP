@@ -1,1 +1,1 @@
-"""S3MP Utilities."""
+"""s3mp Utilities."""

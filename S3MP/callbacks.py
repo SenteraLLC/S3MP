@@ -3,9 +3,9 @@ from pathlib import Path
 
 import tqdm
 
-from S3MP.global_config import S3MPConfig
-from S3MP.mirror_path import MirrorPath
-from S3MP.types import S3Resource, SList
+from s3mp.global_config import S3MPConfig
+from s3mp.mirror_path import MirrorPath
+from s3mp.types import S3Resource, SList
 
 
 class FileSizeTQDMCallback(tqdm.tqdm):

@@ -4,8 +4,8 @@ from typing import Coroutine, List
 
 import aioboto3
 
-from S3MP.global_config import S3MPConfig
-from S3MP.mirror_path import MirrorPath
+from s3mp.global_config import S3MPConfig
+from s3mp.mirror_path import MirrorPath
 
 
 async def async_upload_from_mirror(mirror_path: MirrorPath):
