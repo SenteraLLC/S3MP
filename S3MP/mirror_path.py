@@ -30,7 +30,7 @@ class MirrorPath:
     """A path representing an S3 file and its local mirror."""
 
     def __init__(
-        self,
+        self, 
         key_segments: List[KeySegment],
         mirror_root: Path = None,
     ):
@@ -40,19 +40,19 @@ class MirrorPath:
         self._local_path_override: Path = None
 
         self.mirror_root = mirror_root or S3MPConfig.mirror_root
-
+    
     @property
     def s3_key(self) -> str:
         """Get s3 key."""
         ret_key = "/".join([str(s.name) for s in self.key_segments])
         # We'll infer folder/file based on extension
-        return ret_key if "." in self.key_segments[-1].name else f"{ret_key}/"
-
+        return ret_key if '.' in self.key_segments[-1].name else f"{ret_key}/"
+    
     @property
     def local_path(self) -> Path:
         """Get local path."""
         return self._local_path_override or Path(S3MPConfig.mirror_root) / self.s3_key
-
+    
     def override_local_path(self, local_path: Path):
         """Override local path."""
         self._local_path_override = local_path
@@ -63,23 +63,25 @@ class MirrorPath:
         s3_key = s3_key[:-1] if s3_key.endswith("/") else s3_key
         key_segments = [KeySegment(idx, s) for idx, s in enumerate(s3_key.split("/"))]
         return MirrorPath(key_segments, **kwargs)
-
+    
     @staticmethod
-    def from_local_path(
-        local_path: Path, mirror_root: Path = None, **kwargs: Dict
-    ) -> MirrorPath:
+    def from_local_path(local_path: Path, mirror_root: Path = None, **kwargs: Dict) -> MirrorPath:
         """Create a MirrorPath from a local path."""
         mirror_root = mirror_root or S3MPConfig.mirror_root
         s3_key = local_path.relative_to(mirror_root).as_posix()
         return MirrorPath.from_s3_key(s3_key, **kwargs)
-
+    
     def __copy__(self):
         """Copy."""
-        return MirrorPath(self.key_segments, **self.__dict__)
+        return MirrorPath( 
+            self.key_segments,
+            **self.__dict__
+        )
 
     def __repr__(self):
         """Class representation."""
         return f"{self.__class__.__name__}({self.s3_key})"
+    
 
     def exists_in_mirror(self) -> bool:
         """Check if file exists in mirror."""
@@ -92,7 +94,7 @@ class MirrorPath:
     def is_file_on_s3(self) -> bool:
         """Check if is a file on s3."""
         return key_is_file_on_s3(self.s3_key)
-
+    
     def update_callback_on_skipped_transfer(self):
         """Update the current global callback if the transfer gets skipped."""
         if S3MPConfig.callback and self in S3MPConfig.callback._transfer_objs:
@@ -158,28 +160,14 @@ class MirrorPath:
 
     def get_children_on_s3(self) -> List[MirrorPath]:
         """Get all children on s3."""
-        child_s3_keys = []
-        continuation_token = None
-
-        while True:
-            resp = s3_list_child_keys(
-                self.s3_key, continuation_token=continuation_token
-            )
-
-            # Collect keys from the current response
-            if "Contents" in resp:
-                child_s3_keys.extend(
-                    obj["Key"] for obj in resp["Contents"] if obj["Key"] != self.s3_key
-                )
-            if "CommonPrefixes" in resp:
-                child_s3_keys.extend(obj["Prefix"] for obj in resp["CommonPrefixes"])
-
-            # Check if there are more pages to fetch
-            if "NextContinuationToken" in resp:
-                continuation_token = resp["NextContinuationToken"]
-            else:
-                break
-        return [MirrorPath.from_s3_key(key) for key in child_s3_keys]
+        resp = s3_list_child_keys(self.s3_key)
+        child_s3_keys = [] 
+        # TODO decide if s3_utils is a better spot for this 
+        if 'Contents' in resp:
+            child_s3_keys = [obj['Key'] for obj in resp['Contents'] if obj['Key'] != self.s3_key]
+        if 'CommonPrefixes' in resp:
+            child_s3_keys += [obj['Prefix'] for obj in resp['CommonPrefixes']]
+        return [MirrorPath.from_s3_key(s3_key) for s3_key in child_s3_keys]
 
     def get_parent(self) -> MirrorPath:
         """Get the parent of this file."""
@@ -203,7 +191,6 @@ class MirrorPath:
     ):
         """
         Load local file, infer file type and load.
-
         Setting download to false will still download if the file is not present.
         """
         if download or overwrite or not self.exists_in_mirror():
@@ -225,7 +212,7 @@ class MirrorPath:
         try:
             self.local_path.parent.mkdir(parents=True, exist_ok=True)
         except FileExistsError:  # handle for race conditions
-            pass
+            pass    
         if save_fn is None:
             suffix = self.local_path.suffix[1:].lower()
             save_fn = DEFAULT_SAVE_LEDGER[suffix]
@@ -247,8 +234,8 @@ class MirrorPath:
         shutil.copy(self.local_path, dest_mp.local_path)
 
     def copy_to_mp(self, dest_mp: MirrorPath, use_mirror_as_src: bool = False):
-        """Copy this file to a destination, on S3 and in the mirror.
-
+        """Copy this file to a destination, on S3 and in the mirror. 
+        
         By default, assumes the S3 copy is the source of truth.
         If use_mirror_as_src is True, assumes the mirror is the source of truth.
         """
@@ -264,12 +251,19 @@ class MirrorPath:
             dest_mp.download_to_mirror(overwrite=True)
 
 
-def get_matching_s3_mirror_paths(segments: List[KeySegment]):
+def get_matching_s3_mirror_paths(
+    segments: List[KeySegment]
+):
     """Get matching S3 mirror paths."""
-    return [MirrorPath.from_s3_key(key) for key in get_matching_s3_keys(segments)]
+    return [ 
+        MirrorPath.from_s3_key(key)
+        for key in get_matching_s3_keys(segments)
+    ]
 
 
-def multithread_download_mps_to_mirror(mps: list[MirrorPath], overwrite: bool = False):
+def multithread_download_mps_to_mirror(
+    mps: list[MirrorPath], overwrite: bool = False
+):
     """Download a list of MirrorPaths to the local mirror."""
     n_procs = psutil.cpu_count(logical=False)
     proc_executor = concurrent.futures.ProcessPoolExecutor(max_workers=n_procs)

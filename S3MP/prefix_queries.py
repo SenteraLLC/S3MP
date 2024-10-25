@@ -10,11 +10,13 @@ def get_prefix_paginator(folder_key: str, bucket_key: str = None, delimiter: str
     """Get a paginator for a specified prefix."""
     if not bucket_key:
         bucket_key = S3MPConfig.default_bucket_key
-    if folder_key != "" and folder_key[-1] != "/":
+    if folder_key != '' and folder_key[-1] != "/":
         folder_key += "/"
     s3_client = S3MPConfig.s3_client
     paginator = s3_client.get_paginator("list_objects_v2")
-    return paginator.paginate(Bucket=bucket_key, Prefix=folder_key, Delimiter=delimiter)
+    return paginator.paginate(
+        Bucket=bucket_key, Prefix=folder_key, Delimiter=delimiter
+    )
 
 
 def get_files_within_folder(folder_key: str, key_filter: str = None) -> List[str]:
@@ -37,3 +39,4 @@ def get_folders_within_folder(folder_key: str, key_filter: str = None) -> List[s
                 if key_filter and key_filter not in obj:
                     continue
                 yield obj
+

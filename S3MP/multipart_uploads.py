@@ -2,7 +2,8 @@
 import concurrent.futures
 import math
 
-import S3MP  # noqa: F401
+import S3MP
+from S3MP.async_utils import sync_gather_threads
 from S3MP.global_config import S3MPConfig
 from S3MP.mirror_path import MirrorPath
 from S3MP.transfer_configs import MB
@@ -52,7 +53,7 @@ def resume_multipart_upload(
     with open(mirror_path.local_path, "rb") as f:
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
             # Verify existing parts.
-            assert all(part.size == part_size for part in mpu_parts[:-1])
+            assert(all(part.size == part_size for part in mpu_parts[:-1]))
 
             f.seek(part_size * n_uploaded_parts)
             if S3MPConfig.callback:
@@ -74,12 +75,13 @@ def resume_multipart_upload(
                 if S3MPConfig.callback:
                     S3MPConfig.callback(part_size)
 
-    obj = mpu.complete(MultipartUpload=mpu_dict)
+    obj = mpu.complete(
+        MultipartUpload=mpu_dict
+    )
     if abs(total_size_bytes - obj.content_length) > MB:
         print()
-        print(
-            f"Uploaded size {obj.content_length} does not match local size {total_size_bytes}"
-        )
+        print(f"Uploaded size {obj.content_length} does not match local size {total_size_bytes}")
         obj.delete()
         print("Deleted object, restarting upload.")
         return resume_multipart_upload(mirror_path, max_threads=max_threads)
+    

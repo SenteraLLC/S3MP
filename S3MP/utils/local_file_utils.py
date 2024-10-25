@@ -19,7 +19,6 @@ def delete_local_path(path: Path):
         else:
             path.unlink()
 
-
 # Load functions
 
 
@@ -32,7 +31,6 @@ def load_json(path: str) -> Dict:
 DEFAULT_LOAD_LEDGER = {
     "json": load_json,
 }
-
 
 # Save functions
 def save_json(path: str, data: Dict, indent: int = 4):

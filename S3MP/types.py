@@ -2,15 +2,13 @@
 from pathlib import Path
 from typing import List, TypeVar, Union
 
-from mypy_boto3_s3 import S3Client  # noqa: F401
-from mypy_boto3_s3 import S3ServiceResource as S3Resource  # noqa: F401
-from mypy_boto3_s3.service_resource import Bucket as S3Bucket  # noqa: F401
-from mypy_boto3_s3.type_defs import (  # noqa: F401
-    ListObjectsV2OutputTypeDef as S3ListObjectV2Output,
-)
-from s3transfer.manager import TransferConfig as S3TransferConfig  # noqa: F401
+from mypy_boto3_s3 import S3Client
+from mypy_boto3_s3 import S3ServiceResource as S3Resource
+from mypy_boto3_s3.service_resource import Bucket as S3Bucket
+from mypy_boto3_s3.type_defs import ListObjectsV2OutputTypeDef as S3ListObjectV2Output
+from s3transfer.manager import TransferConfig as S3TransferConfig
 
-T = TypeVar("T")
+T = TypeVar('T')
 SList = Union[List[T], T]
 PathSList = SList[Path]
 StrSSlist = SList[str]
