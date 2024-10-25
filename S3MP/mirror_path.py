@@ -9,14 +9,14 @@ from typing import Callable, Dict, List
 import psutil
 from tqdm import tqdm
 
-from S3MP.global_config import S3MPConfig
-from S3MP.keys import KeySegment, get_matching_s3_keys
-from S3MP.utils.local_file_utils import (
+from s3mp.global_config import s3mpConfig
+from s3mp.keys import KeySegment, get_matching_s3_keys
+from s3mp.utils.local_file_utils import (
     DEFAULT_LOAD_LEDGER,
     DEFAULT_SAVE_LEDGER,
     delete_local_path,
 )
-from S3MP.utils.s3_utils import (
+from s3mp.utils.s3_utils import (
     delete_key_on_s3,
     download_key,
     key_exists_on_s3,
@@ -39,7 +39,7 @@ class MirrorPath:
         self.key_segments: List[KeySegment] = [seg.__copy__() for seg in key_segments]
         self._local_path_override: Path = None
 
-        self.mirror_root = mirror_root or S3MPConfig.mirror_root
+        self.mirror_root = mirror_root or s3mpConfig.mirror_root
 
     @property
     def s3_key(self) -> str:
@@ -51,7 +51,7 @@ class MirrorPath:
     @property
     def local_path(self) -> Path:
         """Get local path."""
-        return self._local_path_override or Path(S3MPConfig.mirror_root) / self.s3_key
+        return self._local_path_override or Path(s3mpConfig.mirror_root) / self.s3_key
 
     def override_local_path(self, local_path: Path):
         """Override local path."""
@@ -69,7 +69,7 @@ class MirrorPath:
         local_path: Path, mirror_root: Path = None, **kwargs: Dict
     ) -> MirrorPath:
         """Create a MirrorPath from a local path."""
-        mirror_root = mirror_root or S3MPConfig.mirror_root
+        mirror_root = mirror_root or s3mpConfig.mirror_root
         s3_key = local_path.relative_to(mirror_root).as_posix()
         return MirrorPath.from_s3_key(s3_key, **kwargs)
 
@@ -95,8 +95,8 @@ class MirrorPath:
 
     def update_callback_on_skipped_transfer(self):
         """Update the current global callback if the transfer gets skipped."""
-        if S3MPConfig.callback and self in S3MPConfig.callback._transfer_objs:
-            S3MPConfig.callback(self.local_path.stat().st_size)
+        if s3mpConfig.callback and self in s3mpConfig.callback._transfer_objs:
+            s3mpConfig.callback(self.local_path.stat().st_size)
 
     def download_to_mirror(self, overwrite: bool = False):
         """Download S3 file to mirror."""
@@ -236,9 +236,9 @@ class MirrorPath:
 
     def copy_to_mp_s3_only(self, dest_mp: MirrorPath):
         """Copy this file from S3 to a destination on S3."""
-        S3MPConfig.s3_client.copy_object(
-            CopySource={"Bucket": S3MPConfig.default_bucket_key, "Key": self.s3_key},
-            Bucket=S3MPConfig.default_bucket_key,
+        s3mpConfig.s3_client.copy_object(
+            CopySource={"Bucket": s3mpConfig.default_bucket_key, "Key": self.s3_key},
+            Bucket=s3mpConfig.default_bucket_key,
             Key=dest_mp.s3_key,
         )
 

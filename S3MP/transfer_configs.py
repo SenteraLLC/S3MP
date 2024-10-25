@@ -1,8 +1,8 @@
 """Transfer configurations and utilities."""
 from s3transfer.constants import GB, KB, MB
 
-from S3MP.global_config import S3MPConfig
-from S3MP.types import S3TransferConfig
+from s3mp.global_config import S3MPConfig
+from s3mp.types import S3TransferConfig
 
 
 def get_transfer_config(
