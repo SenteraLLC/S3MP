@@ -37,7 +37,11 @@ class MirrorPath:
         """Get s3 key."""
         ret_key = "/".join([str(s.name) for s in self.key_segments])
         # We'll infer folder/file based on extension
-        return ret_key if '.' in self.key_segments[-1].name else f"{ret_key}/"
+        # HACK to catch case where the "extension" is actually a part of the folder name
+        # (eg, a folder named "v0.1.0"), we check if the extension is actually a number
+        name = self.key_segments[-1].name
+        ext = name.split('.')[-1]
+        return ret_key if (ext is not name and not ext.isdigit()) else f"{ret_key}/"
     
     @property
     def local_path(self) -> Path:
@@ -85,6 +89,10 @@ class MirrorPath:
     def is_file_on_s3(self) -> bool:
         """Check if is a file on s3."""
         return key_is_file_on_s3(self.s3_key)
+    
+    def is_file_and_exists_on_s3(self) -> bool:
+        """Check if is a file and exists on s3."""
+        return self.exists_on_s3() and self.is_file_on_s3()
     
     def update_callback_on_skipped_transfer(self):
         """Update the current global callback if the transfer gets skipped."""
@@ -151,28 +159,7 @@ class MirrorPath:
 
     def get_children_on_s3(self) -> List[MirrorPath]:
         """Get all children on s3."""
-        child_s3_keys = []
-        continuation_token = None
-
-        while True:
-            resp = s3_list_child_keys(
-                self.s3_key, continuation_token=continuation_token
-            )
-
-            # Collect keys from the current response
-            if "Contents" in resp:
-                child_s3_keys.extend(
-                    obj["Key"] for obj in resp["Contents"] if obj["Key"] != self.s3_key
-                )
-            if "CommonPrefixes" in resp:
-                child_s3_keys.extend(obj["Prefix"] for obj in resp["CommonPrefixes"])
-
-            # Check if there are more pages to fetch
-            if "NextContinuationToken" in resp:
-                continuation_token = resp["NextContinuationToken"]
-            else:
-                break
-        return [MirrorPath.from_s3_key(key) for key in child_s3_keys]
+        return [MirrorPath.from_s3_key(key) for key in s3_list_child_keys(self.s3_key)]
 
     def get_parent(self) -> MirrorPath:
         """Get the parent of this file."""
