@@ -90,6 +90,10 @@ class MirrorPath:
         """Check if is a file on s3."""
         return key_is_file_on_s3(self.s3_key)
     
+    def is_file_and_exists_on_s3(self) -> bool:
+        """Check if is a file and exists on s3."""
+        return self.exists_on_s3() and self.is_file_on_s3()
+    
     def update_callback_on_skipped_transfer(self):
         """Update the current global callback if the transfer gets skipped."""
         if S3MPConfig.callback and self in S3MPConfig.callback._transfer_objs:
