@@ -118,7 +118,7 @@ def key_is_file_on_s3(
         client.head_object(Bucket=bucket.name, Key=key)
         return True
     except Exception as e:
-        # 404 occurs is the key is a "folder" or does not exist
+        # 404 occurs if the key is a "folder" or does not exist
         if "404" in str(e):
             return False
         else:
