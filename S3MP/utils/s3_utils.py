@@ -4,6 +4,7 @@ from pathlib import Path
 from S3MP.global_config import S3MPConfig
 from S3MP.types import S3Bucket, S3Client, S3ListObjectV2Output
 from typing import List
+from botocore.exceptions import ClientError
 
 def s3_list_single_key(
     key: str,
@@ -43,7 +44,7 @@ def s3_list_child_keys(
         # Collect keys from the current response
         if "Contents" in resp:
             child_s3_keys.extend(
-                obj["Key"] for obj in resp["Contents"] if obj["Key"] != self.s3_key
+                obj["Key"] for obj in resp["Contents"] if obj["Key"] != key
             )
         if "CommonPrefixes" in resp:
             child_s3_keys.extend(obj["Prefix"] for obj in resp["CommonPrefixes"])
@@ -107,17 +108,17 @@ def key_is_file_on_s3(
     """Check if a key is a file on S3, returns false if it is a folder. Raises an error if the key does not exist."""
     bucket = bucket or S3MPConfig.bucket
     client = client or S3MPConfig.s3_client
-    if not key_exists_on_s3(key, bucket, client):
-        raise ValueError(f"Key {key} does not exist on S3")
-    res = s3_list_single_key(key, bucket, client)
-    # Handle case of trailing slash, but still verify
-    if (
-        key[-1] == "/"
-        and len(res['Contents']) == 1
-        and res['Contents'][0]['Key'] == key
-    ):  
-        return False
-    return "Contents" in res
+
+    try:
+        client.head_object(Bucket=bucket, Key=key)
+        return True
+    except ClientError as e:
+        if e.response['Error']['Code'] == '404':
+            raise ValueError(f"Key {key} does not exist on S3")
+        elif e.response['Error']['Code'] == '403':
+            raise ValueError(f"Access denied for key {key} on S3")
+        else:
+            return False
 
 
 def key_size_on_s3(
