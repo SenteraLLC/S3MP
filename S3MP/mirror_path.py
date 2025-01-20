@@ -155,28 +155,7 @@ class MirrorPath:
 
     def get_children_on_s3(self) -> List[MirrorPath]:
         """Get all children on s3."""
-        child_s3_keys = []
-        continuation_token = None
-
-        while True:
-            resp = s3_list_child_keys(
-                self.s3_key, continuation_token=continuation_token
-            )
-
-            # Collect keys from the current response
-            if "Contents" in resp:
-                child_s3_keys.extend(
-                    obj["Key"] for obj in resp["Contents"] if obj["Key"] != self.s3_key
-                )
-            if "CommonPrefixes" in resp:
-                child_s3_keys.extend(obj["Prefix"] for obj in resp["CommonPrefixes"])
-
-            # Check if there are more pages to fetch
-            if "NextContinuationToken" in resp:
-                continuation_token = resp["NextContinuationToken"]
-            else:
-                break
-        return [MirrorPath.from_s3_key(key) for key in child_s3_keys]
+        return [MirrorPath.from_s3_key(key) for key in s3_list_child_keys(self.s3_key)]
 
     def get_parent(self) -> MirrorPath:
         """Get the parent of this file."""

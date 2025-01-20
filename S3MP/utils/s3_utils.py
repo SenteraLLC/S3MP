@@ -3,8 +3,7 @@ import warnings
 from pathlib import Path
 from S3MP.global_config import S3MPConfig
 from S3MP.types import S3Bucket, S3Client, S3ListObjectV2Output
-from botocore.exceptions import ClientError
-
+from typing import List
 
 def s3_list_single_key(
     key: str,
@@ -20,10 +19,9 @@ def s3_list_single_key(
 
 def s3_list_child_keys(
     key: str,
-    bucket=None,
-    client=None,
-    continuation_token=None,
-):
+    bucket: S3Bucket = None,
+    client: S3Client = None,
+) -> List[str]:
     """List details of all child keys on S3."""
     if not key.endswith("/"):
         warnings.warn(f"Listing child keys of {key} - key does not end with '/'")
@@ -34,9 +32,29 @@ def s3_list_child_keys(
         "Prefix": key,
         "Delimiter": "/",
     }
-    if continuation_token:
-        params["ContinuationToken"] = continuation_token
-    return client.list_objects_v2(**params)
+    child_s3_keys: List[str] = []
+    continuation_token: str = None
+    while True:
+        if continuation_token:
+            params["ContinuationToken"] = continuation_token
+
+        resp = client.list_objects_v2(**params)
+
+        # Collect keys from the current response
+        if "Contents" in resp:
+            child_s3_keys.extend(
+                obj["Key"] for obj in resp["Contents"] if obj["Key"] != self.s3_key
+            )
+        if "CommonPrefixes" in resp:
+            child_s3_keys.extend(obj["Prefix"] for obj in resp["CommonPrefixes"])
+
+        # Check if there are more pages to fetch
+        if "NextContinuationToken" in resp:
+            continuation_token = resp["NextContinuationToken"]
+        else:
+            break
+
+    return child_s3_keys
 
 def download_key(
     key: str,
@@ -51,8 +69,8 @@ def download_key(
         local_path.parent.mkdir(parents=True, exist_ok=True)
         client.download_file(bucket.name, key, str(local_path), Callback=S3MPConfig.callback, Config=S3MPConfig.transfer_config)
     else:
-        for obj in s3_list_child_keys(key, bucket, client)["Contents"]:
-            download_key(obj["Key"], local_path / obj["Key"].replace(key, ""))
+        for child_key in s3_list_child_keys(key, bucket, client):
+            download_key(child_key, local_path / child_key.replace(key, ""))
     
 def upload_to_key(
     key: str,
@@ -124,8 +142,8 @@ def delete_child_keys_on_s3(
     """Delete all keys that are children of a key on S3."""
     bucket = bucket or S3MPConfig.bucket
     client = client or S3MPConfig.s3_client
-    for obj in s3_list_child_keys(key, bucket, client)["Contents"]:
-        client.delete_object(Bucket=bucket.name, Key=obj["Key"])
+    for child_key in s3_list_child_keys(key, bucket, client):
+        client.delete_object(Bucket=bucket.name, Key=child_key)
 
 
 def delete_key_on_s3(
