@@ -37,7 +37,11 @@ class MirrorPath:
         """Get s3 key."""
         ret_key = "/".join([str(s.name) for s in self.key_segments])
         # We'll infer folder/file based on extension
-        return ret_key if '.' in self.key_segments[-1].name else f"{ret_key}/"
+        # HACK to catch case where the "extension" is actually a part of the folder name
+        # (eg, a folder named "v0.1.0"), we check if the extension is actually a number
+        name = self.key_segments[-1].name
+        ext = name.split('.')[-1]
+        return ret_key if (ext is not name and not ext.isdigit()) else f"{ret_key}/"
     
     @property
     def local_path(self) -> Path:
