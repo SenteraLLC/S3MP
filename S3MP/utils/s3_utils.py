@@ -66,6 +66,7 @@ def download_key(
     """Download a key from S3."""
     bucket = bucket or S3MPConfig.bucket
     client = client or S3MPConfig.s3_client
+    print(f"{key} is file: {key_is_file_on_s3(key, bucket, client)}")
     if key_is_file_on_s3(key, bucket, client):
         local_path.parent.mkdir(parents=True, exist_ok=True)
         client.download_file(bucket.name, key, str(local_path), Callback=S3MPConfig.callback, Config=S3MPConfig.transfer_config)
