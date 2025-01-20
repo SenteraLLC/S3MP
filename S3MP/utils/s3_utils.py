@@ -111,7 +111,7 @@ def key_is_file_on_s3(
     client = client or S3MPConfig.s3_client
 
     try:
-        client.head_object(Bucket=bucket, Key=key)
+        client.head_object(Bucket=bucket.name, Key=key)
         return True
     except ClientError as e:
         if e.response['Error']['Code'] == '404':
