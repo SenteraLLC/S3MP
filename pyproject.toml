@@ -20,6 +20,12 @@ dependencies = [
     "tqdm",
 ]
 
+[project.optional-dependencies]
+image = [
+    "imgparse @ git+ssh://git@github.com/SenteraLLC/py-image-metadata-parser@v2.0.8",
+    "numpy>=2.2.6",
+]
+
 [dependency-groups]
 dev = [
     "pytest",
@@ -28,10 +34,6 @@ dev = [
     "ruff",
     "types-tqdm>=4.67.0.20241221",
     "types-psutil>=6.1.0.20241221",
-]
-image = [
-    "imgparse @ git+ssh://git@github.com/SenteraLLC/py-image-metadata-parser@v2.0.8",
-    "numpy>=2.2.6",
 ]
 
 [build-system]

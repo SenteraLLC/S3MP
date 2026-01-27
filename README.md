@@ -24,7 +24,7 @@ For image files stored in S3, you can parse EXIF metadata including camera param
 
 **Note:** Image metadata parsing requires optional dependencies. Install with:
 ```bash
-uv sync --group image
+uv sync --extra image
 ```
 
 ```python
@@ -153,7 +153,7 @@ If no mirror root is specified and no `.env` file is found, a temporary director
 
     To install with image metadata parsing dependencies (requires Sentera internal packages):
 
-        uv sync --group image
+        uv sync --extra image
 
 4) Set up ``pre-commit`` to ensure all commits to adhere to style conventions.
 
