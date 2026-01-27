@@ -4,6 +4,5 @@
 ## Checks:
 - [ ] Merged latest master
 - [ ] Updated README.md (if needed)
-- [ ] Changed version number in `S3MP/_version.py` and `pyproject.toml`
-- [ ] Packages match in `environment.yml` and `pyproject.toml`
+- [ ] Changed version number in `pyproject.toml`
 ## Breaking Changes
