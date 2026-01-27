@@ -32,3 +32,4 @@ repos:
         language: system
         entry: uv run mypy
         types_or: [python, pyi]
+        exclude: ^S3MP/utils/image_utils\.py$

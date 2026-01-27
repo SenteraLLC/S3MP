@@ -83,3 +83,7 @@ strict_equality = true
 [[tool.mypy.overrides]]
 module = "aioboto3"
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["imgparse", "imgparse.types"]
+ignore_missing_imports = true

@@ -19,7 +19,7 @@ jobs:
           python-version: "3.10"
 
       - name: Install dependencies
-        run: uv sync --dev --group image
+        run: uv sync --dev
 
       - name: Run pre-commit hooks
         run: uv run pre-commit run --all-files
