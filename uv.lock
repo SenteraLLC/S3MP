@@ -1557,7 +1557,7 @@ requires-dist = [
     { name = "future" },
     { name = "imgparse", marker = "extra == 'image'", git = "ssh://git@github.com/SenteraLLC/py-image-metadata-parser?rev=v2.0.8" },
     { name = "mypy-boto3-s3" },
-    { name = "numpy", marker = "extra == 'image'", specifier = ">=2.2.6" },
+    { name = "numpy", marker = "extra == 'image'" },
     { name = "psutil" },
     { name = "pyparsing" },
     { name = "pyproj" },
