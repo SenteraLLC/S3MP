@@ -1531,6 +1531,13 @@ dependencies = [
     { name = "tqdm" },
 ]
 
+[package.optional-dependencies]
+image = [
+    { name = "imgparse" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "numpy", version = "2.4.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+]
+
 [package.dev-dependencies]
 dev = [
     { name = "mypy" },
@@ -1540,11 +1547,6 @@ dev = [
     { name = "types-psutil" },
     { name = "types-tqdm" },
 ]
-image = [
-    { name = "imgparse" },
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "numpy", version = "2.4.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-]
 
 [package.metadata]
 requires-dist = [
@@ -1553,12 +1555,15 @@ requires-dist = [
     { name = "boto3-stubs" },
     { name = "botocore" },
     { name = "future" },
+    { name = "imgparse", marker = "extra == 'image'", git = "ssh://git@github.com/SenteraLLC/py-image-metadata-parser?rev=v2.0.8" },
     { name = "mypy-boto3-s3" },
+    { name = "numpy", marker = "extra == 'image'", specifier = ">=2.2.6" },
     { name = "psutil" },
     { name = "pyparsing" },
     { name = "pyproj" },
     { name = "tqdm" },
 ]
+provides-extras = ["image"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -1568,10 +1573,6 @@ dev = [
     { name = "ruff" },
     { name = "types-psutil", specifier = ">=6.1.0.20241221" },
     { name = "types-tqdm", specifier = ">=4.67.0.20241221" },
-]
-image = [
-    { name = "imgparse", git = "ssh://git@github.com/SenteraLLC/py-image-metadata-parser?rev=v2.0.8" },
-    { name = "numpy", specifier = ">=2.2.6" },
 ]
 
 [[package]]
