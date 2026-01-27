@@ -33,12 +33,12 @@ class MirrorPath:
     def __init__(
         self,
         key_segments: list[KeySegment],
-        mirror_root: Path = None,
+        mirror_root: Path | None = None,
     ):
         """Init."""
         # Solving issues before they happen
         self.key_segments: list[KeySegment] = [seg.__copy__() for seg in key_segments]
-        self._local_path_override: Path = None
+        self._local_path_override: Path | None = None
 
         self.mirror_root = mirror_root or S3MPConfig.mirror_root
 
@@ -50,6 +50,8 @@ class MirrorPath:
         # HACK to catch case where the "extension" is actually a part of the folder name
         # (eg, a folder named "v0.1.0"), we check if the extension is actually a number
         name = self.key_segments[-1].name
+        if name is None:
+            return ret_key
         ext = name.split(".")[-1]
         return ret_key if (ext is not name and not ext.isdigit()) else f"{ret_key}/"
 
@@ -63,14 +65,14 @@ class MirrorPath:
         self._local_path_override = local_path
 
     @staticmethod
-    def from_s3_key(s3_key: str, **kwargs: dict) -> MirrorPath:
+    def from_s3_key(s3_key: str, **kwargs) -> MirrorPath:
         """Create a MirrorPath from an s3 key."""
         s3_key = s3_key[:-1] if s3_key.endswith("/") else s3_key
         key_segments = [KeySegment(idx, s) for idx, s in enumerate(s3_key.split("/"))]
         return MirrorPath(key_segments, **kwargs)
 
     @staticmethod
-    def from_local_path(local_path: Path, mirror_root: Path = None, **kwargs: dict) -> MirrorPath:
+    def from_local_path(local_path: Path, mirror_root: Path | None = None, **kwargs) -> MirrorPath:
         """Create a MirrorPath from a local path."""
         mirror_root = mirror_root or S3MPConfig.mirror_root
         s3_key = local_path.relative_to(mirror_root).as_posix()
@@ -102,8 +104,9 @@ class MirrorPath:
 
     def update_callback_on_skipped_transfer(self):
         """Update the current global callback if the transfer gets skipped."""
-        if S3MPConfig.callback and self in S3MPConfig.callback._transfer_objs:
-            S3MPConfig.callback(self.local_path.stat().st_size)
+        callback = S3MPConfig.callback
+        if callback and hasattr(callback, "_transfer_objs") and self in callback._transfer_objs:
+            callback(self.local_path.stat().st_size)
 
     def download_to_mirror(self, overwrite: bool = False):
         """Download S3 file to mirror."""
@@ -182,7 +185,9 @@ class MirrorPath:
         self.delete_local()
         self.delete_s3()
 
-    def load_local(self, download: bool = True, load_fn: Callable = None, overwrite: bool = False):
+    def load_local(
+        self, download: bool = True, load_fn: Callable | None = None, overwrite: bool = False
+    ):
         """
         Load local file, infer file type and load.
         Setting download to false will still download if the file is not present.
@@ -199,7 +204,7 @@ class MirrorPath:
         self,
         data,
         upload: bool = True,
-        save_fn: Callable = None,
+        save_fn: Callable | None = None,
         overwrite: bool = False,
     ):
         """Save local file, infer file type and upload."""
@@ -217,9 +222,10 @@ class MirrorPath:
 
     def copy_to_mp_s3_only(self, dest_mp: MirrorPath):
         """Copy this file from S3 to a destination on S3."""
+        bucket_key = S3MPConfig.default_bucket_key
         S3MPConfig.s3_client.copy_object(
-            CopySource={"Bucket": S3MPConfig.default_bucket_key, "Key": self.s3_key},
-            Bucket=S3MPConfig.default_bucket_key,
+            CopySource={"Bucket": bucket_key, "Key": self.s3_key},
+            Bucket=bucket_key,
             Key=dest_mp.s3_key,
         )
 
@@ -266,6 +272,8 @@ def multithread_download_mps_to_mirror(mps: list[MirrorPath], overwrite: bool = 
 
     all_proc_futures_except = [pf for pf in all_proc_futures if pf.exception()]
     for pf in all_proc_futures_except:
-        raise pf.exception()
+        exc = pf.exception()
+        if exc:
+            raise exc
 
     proc_executor.shutdown(wait=True)

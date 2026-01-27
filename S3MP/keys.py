@@ -12,9 +12,9 @@ class KeySegment:
     """S3 key segment."""
 
     depth: int
-    name: str = None
+    name: str | None = None
     is_file: bool = False  # Most things are folders.
-    incomplete_name: str = (
+    incomplete_name: str | None = (
         None  # Used when searching for part of a key segment (i.e. a file extension).
     )
 
@@ -70,11 +70,11 @@ def build_s3_key(segments: list[KeySegment]) -> tuple[str, int]:
         if depth not in [seg.depth for seg in segments]
     ]
     depth = empty_depths[0] if empty_depths else segments[-1].depth + 1
-    path = "/".join([seg.name for seg in segments[:depth]])
+    path = "/".join([seg.name for seg in segments[:depth] if seg.name is not None])
     return path, depth
 
 
-def replace_key_segments(key: str, segments: list[KeySegment], max_len: int = None) -> str:
+def replace_key_segments(key: str, segments: list[KeySegment], max_len: int | None = None) -> str:
     """Replace segments of a key with new segments."""
     if isinstance(segments, KeySegment):
         segments = [segments]
@@ -87,6 +87,7 @@ def replace_key_segments(key: str, segments: list[KeySegment], max_len: int = No
         new_depth = segment.depth + og_key_len - 1
         if new_depth >= len(key_segments):
             key_segments.append("")
+        assert segment.name is not None
         key_segments[segment.depth] = segment.name
 
     # TODO there's a pathlib way to handle this
@@ -112,6 +113,7 @@ def replace_key_segments_at_relative_depth(key: str, segments: list[KeySegment])
         new_depth = segment.depth + og_key_len - 1
         if new_depth >= len(key_segments):
             key_segments.append("")
+        assert segment.name is not None
         key_segments[new_depth] = segment.name
     return "/".join(key_segments)
 
@@ -125,7 +127,7 @@ def unpack_s3_obj_generator(path: str, filter_name: str, is_file: bool):
     return [f"{path}{obj}" for obj in objs_at_depth]
 
 
-def get_filter_name(segments: list[KeySegment], current_depth: int) -> str:
+def get_filter_name(segments: list[KeySegment], current_depth: int) -> str | None:
     """Get the filter name for the current depth."""
     return next(
         (
@@ -138,7 +140,7 @@ def get_filter_name(segments: list[KeySegment], current_depth: int) -> str:
 
 
 async def dfs_matching_key_gen(
-    segments: list[KeySegment], path: str = None, current_depth: int = None
+    segments: list[KeySegment], path: str | None = None, current_depth: int | None = None
 ):
     """Generate all matching keys from a path, depth first."""
     if current_depth is None:
@@ -147,7 +149,12 @@ async def dfs_matching_key_gen(
 
     filter_name = get_filter_name(segments, current_depth)
     file_search_flag = (current_depth == segments[-1].depth) and (segments[-1].is_file)
-    paths_at_depth = unpack_s3_obj_generator(path, filter_name, file_search_flag)
+    # Ensure path and filter_name are not None
+    assert path is not None
+    if filter_name is not None:
+        paths_at_depth = unpack_s3_obj_generator(path, filter_name, file_search_flag)
+    else:
+        paths_at_depth = unpack_s3_obj_generator(path, "", file_search_flag)
     if current_depth == segments[-1].depth:
         for path in paths_at_depth:
             yield path
@@ -161,7 +168,7 @@ async def dfs_matching_key_gen(
 
 
 def sync_dfs_matching_key_gen(
-    segments: list[KeySegment], path: str = None, current_depth: int = None
+    segments: list[KeySegment], path: str | None = None, current_depth: int | None = None
 ):
     """Synchronous generation of all matching keys from a path, depth first."""
     if current_depth is None:
@@ -170,7 +177,12 @@ def sync_dfs_matching_key_gen(
 
     filter_name = get_filter_name(segments, current_depth)
     file_search_flag = (current_depth == segments[-1].depth) and (segments[-1].is_file)
-    paths_at_depth = unpack_s3_obj_generator(path, filter_name, file_search_flag)
+    # Ensure path and filter_name are not None
+    assert path is not None
+    if filter_name is not None:
+        paths_at_depth = unpack_s3_obj_generator(path, filter_name, file_search_flag)
+    else:
+        paths_at_depth = unpack_s3_obj_generator(path, "", file_search_flag)
     if current_depth == segments[-1].depth:
         yield from paths_at_depth
     n_paths = len(paths_at_depth)
@@ -195,7 +207,7 @@ def get_matching_s3_keys(segments: list[KeySegment]) -> list[str]:
     empty_depths = [depth for depth in range(max_depth + 1) if depth not in segment_depths]
 
     prefix_len = empty_depths[0] if empty_depths else len(segments)
-    initial_prefix = "/".join([seg.name for seg in segments[:prefix_len]])
+    initial_prefix = "/".join([seg.name for seg in segments[:prefix_len] if seg.name is not None])
     current_paths = [initial_prefix]
     for current_depth in range(prefix_len, max_depth + 1):
         # Determine if there is a filter for the current depth.
@@ -203,8 +215,9 @@ def get_matching_s3_keys(segments: list[KeySegment]) -> list[str]:
         # Search for files at max depth
         file_search_flag = (current_depth == max_depth) and (segments[-1].is_file)
         new_paths = [
-            unpack_s3_obj_generator(path, filter_name, file_search_flag) for path in current_paths
+            unpack_s3_obj_generator(path, filter_name or "", file_search_flag)
+            for path in current_paths
         ]
-        current_paths = itertools.chain(*new_paths)
+        current_paths = list(itertools.chain(*new_paths))
 
-    return list(current_paths)
+    return current_paths

@@ -17,7 +17,7 @@ class FileSizeTQDMCallback(tqdm.tqdm):
     def __init__(
         self,
         transfer_objs: list[Path | str | MirrorPath] | Path | str | MirrorPath,
-        resource: S3Resource = None,
+        resource: S3Resource | None = None,
         bucket_key=None,
         is_download: bool = True,
     ):
@@ -41,7 +41,7 @@ class FileSizeTQDMCallback(tqdm.tqdm):
         self._total_bytes = 0
         for transfer_mapping in transfer_objs:
             if is_download:
-                s3_key = (
+                s3_key = str(
                     transfer_mapping.s3_key
                     if isinstance(transfer_mapping, MirrorPath)
                     else transfer_mapping
@@ -53,6 +53,9 @@ class FileSizeTQDMCallback(tqdm.tqdm):
                     if isinstance(transfer_mapping, MirrorPath)
                     else transfer_mapping
                 )
+                # Ensure local_path is a Path object, not str
+                if isinstance(local_path, str):
+                    local_path = Path(local_path)
                 self._total_bytes += local_path.stat().st_size
 
         transfer_str = "Download" if is_download else "Upload"

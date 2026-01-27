@@ -6,6 +6,7 @@ import boto3
 import pytest
 
 from S3MP.types import S3Client
+from S3MP.utils import s3_utils
 from S3MP.utils.s3_utils import key_exists_on_s3, key_is_file_on_s3, s3_list_child_keys
 
 TESTING_BUCKET_NAME = "s3mp-testing"
@@ -24,7 +25,7 @@ def _make_test_file_structure(
     bucket_key: str,
     prefix: str,
     current_data: dict,
-    client: S3Client = None,
+    client: S3Client | None = None,
 ):
     """
     Make a test file structure, recursively.
@@ -70,13 +71,20 @@ def test_folders_files():
 
     # Test folder listing
     with pytest.warns(Warning):
-        child_keys = s3_list_child_keys("test_folder", bucket, client)
-    child_keys = s3_list_child_keys("test_folder/", bucket, client)
-    child_files = [key["Key"] for key in child_keys["Contents"]]
-    child_folders = [key["Prefix"] for key in child_keys["CommonPrefixes"]]
+        s3_list_child_keys("test_folder", bucket, client)
+    # Use s3_list_single_key to get the full response dict for testing
+    response = s3_utils.s3_list_single_key("test_folder/", bucket, client)
+    child_files = [obj["Key"] for obj in response.get("Contents", [])]
+    child_folders = [obj["Prefix"] for obj in response.get("CommonPrefixes", [])]
     list_assert(
         child_files,
-        ["test_folder/", "test_folder/test_file_1", "test_folder/test_file_2"],
+        [
+            "test_folder/",
+            "test_folder/test_file_1",
+            "test_folder/test_file_2",
+            "test_folder/empty_subfolder/",
+            "test_folder/nonempty_subfolder/",
+        ],
     )
     list_assert(
         child_folders,

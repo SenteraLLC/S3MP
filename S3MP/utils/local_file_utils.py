@@ -26,7 +26,8 @@ def delete_local_path(path: Path):
 def load_json(path: str) -> dict:
     """Load a json file."""
     with open(path) as f:
-        return json.load(f)
+        result: dict = json.load(f)
+        return result
 
 
 DEFAULT_LOAD_LEDGER = {

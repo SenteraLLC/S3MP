@@ -10,7 +10,7 @@ def get_transfer_config(
     n_threads: int,
     block_size: int = 8 * MB,
     max_ram: int = 4 * GB,
-    io_queue_size: int = 10e4,
+    io_queue_size: int = int(10e4),
     io_chunk_size: int = 256 * KB,
     set_global: bool = True,
 ) -> S3TransferConfig:
@@ -29,7 +29,7 @@ def get_transfer_config(
         max_io_queue_size=io_queue_size,
         io_chunksize=io_chunk_size,
     )
-    config.use_threads = n_threads > 1
+    config.use_threads = n_threads > 1  # type: ignore[attr-defined]
     if set_global:
         S3MPConfig.transfer_config = config
     return config
