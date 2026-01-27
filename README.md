@@ -19,8 +19,45 @@ Provide a list of `KeySegment`s, and replace those within an existing key, but a
 ### `MirrorPath` locality functions: `get_sibling`, `get_parent`, `get_child`
 Provide a file name to any of these and get a `MirrorPath` relative to the current file. This calls `replace_key_segments_at_relative_depth` under the hood, but is far more user-friendly than that function for small replacements.
 
-#
-#
+### Image Metadata Parsing
+For image files stored in S3, you can parse EXIF metadata including camera parameters, GPS coordinates, and sensor orientation. This is useful for aerial imagery processing where you need to calculate ground sample distance (GSD) or other photogrammetric properties.
+
+**Note:** Image metadata parsing requires optional dependencies. Install with:
+```bash
+uv sync --group image
+```
+
+```python
+from S3MP.mirror_path import MirrorPath
+
+# Create a MirrorPath to an image
+image_mp = MirrorPath.from_s3_key("...IMG_1234.jpg")
+
+# Parse metadata directly from MirrorPath
+metadata = image_mp.parse_image_metadata()
+
+# Access parsed metadata
+print(f"Image size: {metadata.width}x{metadata.height}")
+print(f"Camera: {metadata.sensor_make} {metadata.sensor_model}")
+print(f"Location: ({metadata.latitude}, {metadata.longitude})")
+print(f"Altitude: {metadata.altitude}m")
+
+# Compute GSD at image center
+if metadata.altitude and metadata.focal_length:
+    center_coords = (metadata.width / 2, metadata.height / 2)
+    gsd = metadata.compute_gsd(center_coords)
+    print(f"GSD at center: {gsd} mm/pixel")
+
+    # Or use the mirror_path function, which calls the same metadata method
+    gsd = image_mp.compute_gsd(center_coords)
+
+# Compute nadir angle (angle from directly below camera)
+nadir_angle = metadata.compute_nadir_angle(center_coords)
+print(f"Nadir angle: {nadir_angle} degrees")
+```
+
+The image will be automatically downloaded to the local mirror if not already present before parsing.
+
 
 ## Example Use Case
 Consider a processing project with the following folder structure:
@@ -110,9 +147,13 @@ If no mirror root is specified and no `.env` file is found, a temporary director
         cd S3MP
         uv sync
 
-   To install with dev dependencies (for testing and development):
+    To install with dev dependencies (for testing and development):
 
         uv sync --dev
+
+    To install with image metadata parsing dependencies (requires Sentera internal packages):
+
+        uv sync --group image
 
 4) Set up ``pre-commit`` to ensure all commits to adhere to style conventions.
 

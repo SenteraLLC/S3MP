@@ -12,7 +12,6 @@ from tqdm import tqdm
 
 from S3MP.global_config import S3MPConfig
 from S3MP.keys import KeySegment, get_matching_s3_keys
-from S3MP.utils.image_utils import ImageMetadata
 from S3MP.utils.local_file_utils import (
     DEFAULT_LOAD_LEDGER,
     DEFAULT_SAVE_LEDGER,
@@ -258,6 +257,8 @@ class MirrorPath:
             ImageMetadata object with parsed metadata from the image file
 
         """
+        from S3MP.utils.image_utils import ImageMetadata
+
         return ImageMetadata.parse_metadata(self)
 
     def compute_gsd(self, coords: tuple[float, float]) -> float:
@@ -265,6 +266,7 @@ class MirrorPath:
 
         Args:
             coords: Tuple of (latitude, longitude) for which to compute GSD"""
+        from S3MP.utils.image_utils import ImageMetadata
 
         return ImageMetadata.parse_metadata(self).compute_gsd(coords)
 
