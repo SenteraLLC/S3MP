@@ -1,9 +1,10 @@
 """S3 key modification utilities."""
-from enum import Enum
+
 import itertools
 from dataclasses import dataclass
-from typing import List, Tuple
-from S3MP.prefix_queries import get_folders_within_folder, get_files_within_folder
+from enum import Enum
+
+from S3MP.prefix_queries import get_files_within_folder, get_folders_within_folder
 
 
 @dataclass
@@ -21,16 +22,16 @@ class KeySegment:
         """Set data via calling."""
         self = self.__copy__()
         if len(args) == 1:
-            if type(args[0]) == str:
-                self.name = args[0] 
+            if isinstance(args[0], str):
+                self.name = args[0]
             elif isinstance(args[0], Enum):
                 self.name = args[0].value
             else:
-                try: 
+                try:
                     self.name = str(args[0])
-                except:
-                    raise TypeError(f"Cannot convert {args[0]} to str.")
-    
+                except Exception as e:
+                    raise TypeError(f"Cannot convert {args[0]} to str.") from e
+
         for key in self.__dict__.keys():
             if key in kwargs:
                 setattr(self, key, kwargs[key])
@@ -40,27 +41,27 @@ class KeySegment:
     def __copy__(self):
         """Copy."""
         return KeySegment(self.depth, self.name, self.is_file, self.incomplete_name)
-    
+
     def copy(self):
         """Copy."""
         return self.__copy__()
-    
+
     def __repr__(self):
         """Class representation."""
         return f"{self.__class__.__name__}(depth={self.depth}, name={self.name}, is_file={self.is_file}, incomplete_name={self.incomplete_name})"
 
 
-def get_arbitrary_keys_from_names(names: List[str]) -> List[KeySegment]:
+def get_arbitrary_keys_from_names(names: list[str]) -> list[KeySegment]:
     """Get arbitrary keys from a list of names."""
     return [KeySegment(depth=idx, name=name) for idx, name in enumerate(names)]
 
 
-def get_segments_from_key(key: str) -> List[KeySegment]:
+def get_segments_from_key(key: str) -> list[KeySegment]:
     """Get segments from a key."""
     return [KeySegment(depth=idx, name=name) for idx, name in enumerate(key.split("/"))]
 
 
-def build_s3_key(segments: List[KeySegment]) -> Tuple[str, int]:
+def build_s3_key(segments: list[KeySegment]) -> tuple[str, int]:
     """Build an S3 key from a list of segments."""
     segments = sorted(segments, key=lambda x: x.depth)
     empty_depths = [
@@ -73,11 +74,9 @@ def build_s3_key(segments: List[KeySegment]) -> Tuple[str, int]:
     return path, depth
 
 
-def replace_key_segments(
-    key: str, segments: List[KeySegment], max_len: int = None
-) -> str:
+def replace_key_segments(key: str, segments: list[KeySegment], max_len: int = None) -> str:
     """Replace segments of a key with new segments."""
-    if type(segments) == KeySegment:
+    if isinstance(segments, KeySegment):
         segments = [segments]
     segments = sorted(segments, key=lambda x: x.depth)
     key_segments = key.split("/")
@@ -99,12 +98,12 @@ def replace_key_segments(
     return ret
 
 
-def replace_key_segments_at_relative_depth(key: str, segments: List[KeySegment]) -> str:
+def replace_key_segments_at_relative_depth(key: str, segments: list[KeySegment]) -> str:
     """
     Replace segments of a key with new segments at a relative depth.
     0 would be the deepest segment, -1 would be the second deepest, etc.
     """
-    if type(segments) == KeySegment:
+    if isinstance(segments, KeySegment):
         segments = [segments]
     segments = sorted(segments, key=lambda x: x.depth)
     key_segments = [seg for seg in key.split("/") if seg]
@@ -126,7 +125,7 @@ def unpack_s3_obj_generator(path: str, filter_name: str, is_file: bool):
     return [f"{path}{obj}" for obj in objs_at_depth]
 
 
-def get_filter_name(segments: List[KeySegment], current_depth: int) -> str:
+def get_filter_name(segments: list[KeySegment], current_depth: int) -> str:
     """Get the filter name for the current depth."""
     return next(
         (
@@ -139,7 +138,7 @@ def get_filter_name(segments: List[KeySegment], current_depth: int) -> str:
 
 
 async def dfs_matching_key_gen(
-    segments: List[KeySegment], path: str = None, current_depth: int = None
+    segments: list[KeySegment], path: str = None, current_depth: int = None
 ):
     """Generate all matching keys from a path, depth first."""
     if current_depth is None:
@@ -157,14 +156,12 @@ async def dfs_matching_key_gen(
         return
 
     for path in paths_at_depth:
-        async for matching_key in dfs_matching_key_gen(
-            segments, path, current_depth + 1
-        ):
+        async for matching_key in dfs_matching_key_gen(segments, path, current_depth + 1):
             yield matching_key
 
 
 def sync_dfs_matching_key_gen(
-    segments: List[KeySegment], path: str = None, current_depth: int = None
+    segments: list[KeySegment], path: str = None, current_depth: int = None
 ):
     """Synchronous generation of all matching keys from a path, depth first."""
     if current_depth is None:
@@ -184,7 +181,7 @@ def sync_dfs_matching_key_gen(
         yield from sync_dfs_matching_key_gen(segments, path, current_depth + 1)
 
 
-def get_matching_s3_keys(segments: List[KeySegment]) -> List[str]:
+def get_matching_s3_keys(segments: list[KeySegment]) -> list[str]:
     """
     Get all S3 keys matching the given segments.
 
@@ -195,9 +192,7 @@ def get_matching_s3_keys(segments: List[KeySegment]) -> List[str]:
 
     # We can only filter on segments with names
     segment_depths = [segment.depth for segment in segments if segment.name]
-    empty_depths = [
-        depth for depth in range(max_depth + 1) if depth not in segment_depths
-    ]
+    empty_depths = [depth for depth in range(max_depth + 1) if depth not in segment_depths]
 
     prefix_len = empty_depths[0] if empty_depths else len(segments)
     initial_prefix = "/".join([seg.name for seg in segments[:prefix_len]])
@@ -208,8 +203,7 @@ def get_matching_s3_keys(segments: List[KeySegment]) -> List[str]:
         # Search for files at max depth
         file_search_flag = (current_depth == max_depth) and (segments[-1].is_file)
         new_paths = [
-            unpack_s3_obj_generator(path, filter_name, file_search_flag)
-            for path in current_paths
+            unpack_s3_obj_generator(path, filter_name, file_search_flag) for path in current_paths
         ]
         current_paths = itertools.chain(*new_paths)
 

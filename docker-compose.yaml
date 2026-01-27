@@ -1,7 +1,7 @@
-services: 
+services:
     s3mp-lambda-img:
-        build: 
-            context: . 
+        build:
+            context: .
             dockerfile: Dockerfile
             target: s3mp-lambda-img
         image: 475283710372.dkr.ecr.us-east-1.amazonaws.com/s3mp:s3mp-lambda-img

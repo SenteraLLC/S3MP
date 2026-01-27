@@ -1,9 +1,11 @@
 """Utilities for working with S3."""
+
 import warnings
 from pathlib import Path
+
 from S3MP.global_config import S3MPConfig
 from S3MP.types import S3Bucket, S3Client, S3ListObjectV2Output
-from typing import List
+
 
 def s3_list_single_key(
     key: str,
@@ -13,18 +15,17 @@ def s3_list_single_key(
     """List details of a single key on S3."""
     bucket = bucket or S3MPConfig.bucket
     client = client or S3MPConfig.s3_client
-    return client.list_objects_v2(
-        Bucket=bucket.name, Prefix=key, Delimiter="/", MaxKeys=1
-    )
+    return client.list_objects_v2(Bucket=bucket.name, Prefix=key, Delimiter="/", MaxKeys=1)
+
 
 def s3_list_child_keys(
     key: str,
     bucket: S3Bucket = None,
     client: S3Client = None,
-) -> List[str]:
+) -> list[str]:
     """List details of all child keys on S3."""
     if not key.endswith("/"):
-        warnings.warn(f"Listing child keys of {key} - key does not end with '/'")
+        warnings.warn(f"Listing child keys of {key} - key does not end with '/'", stacklevel=2)
     bucket = bucket or S3MPConfig.bucket
     client = client or S3MPConfig.s3_client
     params = {
@@ -32,7 +33,7 @@ def s3_list_child_keys(
         "Prefix": key,
         "Delimiter": "/",
     }
-    child_s3_keys: List[str] = []
+    child_s3_keys: list[str] = []
     continuation_token: str = None
     while True:
         if continuation_token:
@@ -42,9 +43,7 @@ def s3_list_child_keys(
 
         # Collect keys from the current response
         if "Contents" in resp:
-            child_s3_keys.extend(
-                obj["Key"] for obj in resp["Contents"] if obj["Key"] != key
-            )
+            child_s3_keys.extend(obj["Key"] for obj in resp["Contents"] if obj["Key"] != key)
         if "CommonPrefixes" in resp:
             child_s3_keys.extend(obj["Prefix"] for obj in resp["CommonPrefixes"])
 
@@ -55,6 +54,7 @@ def s3_list_child_keys(
             break
 
     return child_s3_keys
+
 
 def download_key(
     key: str,
@@ -68,16 +68,23 @@ def download_key(
 
     if not key_exists_on_s3(key, bucket, client):
         raise ValueError(f"Key {key} does not exist on S3")
-    
+
     # If the key is a file, download it
     # Otherwise, download all child keys
     if key_is_file_on_s3(key, bucket, client):
         local_path.parent.mkdir(parents=True, exist_ok=True)
-        client.download_file(bucket.name, key, str(local_path), Callback=S3MPConfig.callback, Config=S3MPConfig.transfer_config)
+        client.download_file(
+            bucket.name,
+            key,
+            str(local_path),
+            Callback=S3MPConfig.callback,
+            Config=S3MPConfig.transfer_config,
+        )
     else:
         for child_key in s3_list_child_keys(key, bucket, client):
             download_key(child_key, local_path / child_key.replace(key, ""))
-    
+
+
 def upload_to_key(
     key: str,
     local_path: Path,
@@ -88,10 +95,17 @@ def upload_to_key(
     bucket = bucket or S3MPConfig.bucket
     client = client or S3MPConfig.s3_client
     if local_path.is_file():
-        client.upload_file(str(local_path), bucket.name, key, Callback=S3MPConfig.callback, Config=S3MPConfig.transfer_config)
+        client.upload_file(
+            str(local_path),
+            bucket.name,
+            key,
+            Callback=S3MPConfig.callback,
+            Config=S3MPConfig.transfer_config,
+        )
     else:
         for child in local_path.iterdir():
             upload_to_key(f"{key}/{child.name}", child, bucket, client)
+
 
 def key_exists_on_s3(
     key: str,
@@ -106,7 +120,7 @@ def key_exists_on_s3(
 
 
 def key_is_file_on_s3(
-    key: str, 
+    key: str,
     bucket: S3Bucket = None,
     client: S3Client = None,
 ) -> bool:
@@ -129,7 +143,7 @@ def key_size_on_s3(
     key: str,
     bucket: S3Bucket = None,
     client: S3Client = None,
-    ) -> int:
+) -> int:
     """Get the size of a key on S3. Raises an error if the key does not exist."""
     bucket = bucket or S3MPConfig.bucket
     client = client or S3MPConfig.s3_client
@@ -165,4 +179,3 @@ def delete_key_on_s3(
         client.delete_object(Bucket=bucket.name, Key=key)
     else:
         delete_child_keys_on_s3(key, bucket, client)
-    

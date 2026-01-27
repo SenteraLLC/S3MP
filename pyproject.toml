@@ -25,7 +25,9 @@ dev = [
     "pytest",
     "pre-commit",
     "mypy",
-    "ruff"
+    "ruff",
+    "types-tqdm>=4.67.0.20241221",
+    "types-psutil>=6.1.0.20241221",
 ]
 
 [build-system]
