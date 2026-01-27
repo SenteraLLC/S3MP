@@ -12,6 +12,7 @@ from tqdm import tqdm
 
 from S3MP.global_config import S3MPConfig
 from S3MP.keys import KeySegment, get_matching_s3_keys
+from S3MP.utils.image_utils import ImageMetadata
 from S3MP.utils.local_file_utils import (
     DEFAULT_LOAD_LEDGER,
     DEFAULT_SAVE_LEDGER,
@@ -249,6 +250,23 @@ class MirrorPath:
             # to the dest S3 path, then download it to the dest mirror.
             self.copy_to_mp_s3_only(dest_mp)
             dest_mp.download_to_mirror(overwrite=True)
+
+    def parse_image_metadata(self):
+        """Parse image metadata from this MirrorPath.
+
+        Returns:
+            ImageMetadata object with parsed metadata from the image file
+
+        """
+        return ImageMetadata.parse_metadata(self)
+
+    def compute_gsd(self, coords: tuple[float, float]) -> float:
+        """Compute GSD (Ground Sample Distance) for the image at given coordinates.
+
+        Args:
+            coords: Tuple of (latitude, longitude) for which to compute GSD"""
+
+        return ImageMetadata.parse_metadata(self).compute_gsd(coords)
 
 
 def get_matching_s3_mirror_paths(segments: list[KeySegment]):

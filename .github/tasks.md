@@ -1,8 +1,3 @@
 ## Tasks
-- [ ] Update typing thoughout the repo such that ALL pre-commit checks pass with `uv run pre-commit run --all-files`. Do NOT modify the pre-commit config unless given explicit permission.
-  - [ ] Fix Optional type annotations (None defaults)
-  - [ ] Fix callback function checks
-  - [ ] Fix S3MPConfig property type issues
-  - [ ] Fix generator return types
-  - [ ] Fix Any return types
-  - [ ] Fix type incompatibilities
+- [x] Add metadata parsing for image files. See [here](https://github.com/SenteraLLC/py-encord-data/blob/7aba3ad63296dfcd530318550b2f02a3e9d717c5/encord_data/db/models/tables.py#L291C5-L306C10) for an example. This will require adding [imgparse](https://github.com/SenteraLLC/py-encord-data/blob/7aba3ad63296dfcd530318550b2f02a3e9d717c5/pyproject.toml#L18C1-L18C14) as a dependency.
+- [x] Also add a compute_gsd function, see [here](https://github.com/SenteraLLC/py-encord-data/blob/7aba3ad63296dfcd530318550b2f02a3e9d717c5/encord_data/db/models/tables.py#L308-L337) for an example.
