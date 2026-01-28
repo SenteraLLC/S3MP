@@ -265,7 +265,8 @@ class MirrorPath:
         """Compute GSD (Ground Sample Distance) for the image at given coordinates.
 
         Args:
-            coords: Tuple of (latitude, longitude) for which to compute GSD"""
+            coords: Tuple of (x, y) pixel coordinates within the image for which to compute GSD.
+        """
         from S3MP.utils.image_utils import ImageMetadata
 
         return ImageMetadata.parse_metadata(self).compute_gsd(coords)

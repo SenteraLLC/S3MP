@@ -113,7 +113,8 @@ class _S3MPConfigClass(metaclass=Singleton):
         config_file_path = config_file_path or get_config_file_path()
         config = ConfigParser()
         config["DEFAULT"] = {}
-        config["DEFAULT"]["default_bucket_key"] = self.default_bucket_key
+        if self._default_bucket_key is not None:
+            config["DEFAULT"]["default_bucket_key"] = self._default_bucket_key
         if self._mirror_root:
             config["DEFAULT"]["mirror_root"] = str(self._mirror_root)
         with open(config_file_path, "w") as configfile:

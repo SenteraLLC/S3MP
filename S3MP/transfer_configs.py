@@ -10,7 +10,7 @@ def get_transfer_config(
     n_threads: int,
     block_size: int = 8 * MB,
     max_ram: int = 4 * GB,
-    io_queue_size: int = int(10e4),
+    io_queue_size: int = 100000,
     io_chunk_size: int = 256 * KB,
     set_global: bool = True,
 ) -> S3TransferConfig:
