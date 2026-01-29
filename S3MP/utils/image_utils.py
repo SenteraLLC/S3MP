@@ -62,6 +62,7 @@ class ImageMetadata:
 
         self.focal_length = focal_length
         self.altitude = altitude
+        self.distortion_params = distortion_params
 
     @classmethod
     def parse_metadata(cls, mirror_path: MirrorPath) -> ImageMetadata:
