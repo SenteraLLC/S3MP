@@ -1,33 +1,91 @@
 [project]
 name = "S3MP"
-version = "0.6.0"
+version = "0.7.0"
 description = ""
 authors = [
-    {name = "Joshua Dean", email = "joshua.dean@sentera.com"}
+    {name = "Joshua Dean", email = "joshua.dean@sentera.com"},
+    {name = "Trevor Burgoyne", email = "trevor.burgoyne@sentera.com"},
 ]
-dependencies = [ 
+requires-python = ">=3.10"
+dependencies = [
     "aioboto3",
     "boto3",
     "boto3-stubs",
     "botocore",
     "future",
     "mypy-boto3-s3",
-    "pip",
     "psutil",
     "pyparsing",
     "pyproj",
-    "setuptools",
     "tqdm",
 ]
 
 [project.optional-dependencies]
-dev = [
-    "pytest",
+image = [
+    "imgparse @ git+ssh://git@github.com/SenteraLLC/py-image-metadata-parser@v2.0.8",
+    "numpy",
 ]
 
-[tool.setuptools]
-py-modules = ["S3MP"]
-packages = [
-    'S3MP',
-    'S3MP.utils'
+[dependency-groups]
+dev = [
+    "pytest",
+    "pre-commit",
+    "mypy",
+    "ruff",
+    "types-tqdm>=4.67.0.20241221",
+    "types-psutil>=6.1.0.20241221",
 ]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["S3MP"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "N999",  # invalid module name (S3MP is an established package name)
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = "aioboto3"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["imgparse", "imgparse.types"]
+ignore_missing_imports = true

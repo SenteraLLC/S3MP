@@ -1,0 +1,11 @@
+name: Feature branch
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  lint-test:
+    name: Lint and test
+    uses: ./.github/workflows/lint_and_test.yaml
+    secrets: inherit

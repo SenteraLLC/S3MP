@@ -1,11 +1,15 @@
 """S3 Mirror pathing management."""
+
 from __future__ import annotations
+
 import concurrent.futures
-from typing import Callable, Dict, List
-from pathlib import Path
-from tqdm import tqdm
 import shutil
+from collections.abc import Callable
+from pathlib import Path
+
 import psutil
+from tqdm import tqdm
+
 from S3MP.global_config import S3MPConfig
 from S3MP.keys import KeySegment, get_matching_s3_keys
 from S3MP.utils.local_file_utils import (
@@ -13,25 +17,31 @@ from S3MP.utils.local_file_utils import (
     DEFAULT_SAVE_LEDGER,
     delete_local_path,
 )
-
-from S3MP.utils.s3_utils import delete_key_on_s3, download_key, key_exists_on_s3, key_is_file_on_s3, s3_list_child_keys, upload_to_key
+from S3MP.utils.s3_utils import (
+    delete_key_on_s3,
+    download_key,
+    key_exists_on_s3,
+    key_is_file_on_s3,
+    s3_list_child_keys,
+    upload_to_key,
+)
 
 
 class MirrorPath:
     """A path representing an S3 file and its local mirror."""
 
     def __init__(
-        self, 
-        key_segments: List[KeySegment],
-        mirror_root: Path = None,
+        self,
+        key_segments: list[KeySegment],
+        mirror_root: Path | None = None,
     ):
         """Init."""
         # Solving issues before they happen
-        self.key_segments: List[KeySegment] = [seg.__copy__() for seg in key_segments]
-        self._local_path_override: Path = None
+        self.key_segments: list[KeySegment] = [seg.__copy__() for seg in key_segments]
+        self._local_path_override: Path | None = None
 
         self.mirror_root = mirror_root or S3MPConfig.mirror_root
-    
+
     @property
     def s3_key(self) -> str:
         """Get s3 key."""
@@ -40,43 +50,41 @@ class MirrorPath:
         # HACK to catch case where the "extension" is actually a part of the folder name
         # (eg, a folder named "v0.1.0"), we check if the extension is actually a number
         name = self.key_segments[-1].name
-        ext = name.split('.')[-1]
+        if name is None:
+            return ret_key
+        ext = name.split(".")[-1]
         return ret_key if (ext is not name and not ext.isdigit()) else f"{ret_key}/"
-    
+
     @property
     def local_path(self) -> Path:
         """Get local path."""
         return self._local_path_override or Path(S3MPConfig.mirror_root) / self.s3_key
-    
+
     def override_local_path(self, local_path: Path):
         """Override local path."""
         self._local_path_override = local_path
 
     @staticmethod
-    def from_s3_key(s3_key: str, **kwargs: Dict) -> MirrorPath:
+    def from_s3_key(s3_key: str, **kwargs) -> MirrorPath:
         """Create a MirrorPath from an s3 key."""
         s3_key = s3_key[:-1] if s3_key.endswith("/") else s3_key
-        key_segments = [KeySegment(idx, s) for idx, s in enumerate(s3_key.split('/'))]
+        key_segments = [KeySegment(idx, s) for idx, s in enumerate(s3_key.split("/"))]
         return MirrorPath(key_segments, **kwargs)
-    
+
     @staticmethod
-    def from_local_path(local_path: Path, mirror_root: Path = None, **kwargs: Dict) -> MirrorPath:
+    def from_local_path(local_path: Path, mirror_root: Path | None = None, **kwargs) -> MirrorPath:
         """Create a MirrorPath from a local path."""
         mirror_root = mirror_root or S3MPConfig.mirror_root
         s3_key = local_path.relative_to(mirror_root).as_posix()
         return MirrorPath.from_s3_key(s3_key, **kwargs)
-    
+
     def __copy__(self):
         """Copy."""
-        return MirrorPath( 
-            self.key_segments,
-            **self.__dict__
-        )
+        return MirrorPath(self.key_segments, **self.__dict__)
 
     def __repr__(self):
         """Class representation."""
         return f"{self.__class__.__name__}({self.s3_key})"
-    
 
     def exists_in_mirror(self) -> bool:
         """Check if file exists in mirror."""
@@ -89,15 +97,16 @@ class MirrorPath:
     def is_file_on_s3(self) -> bool:
         """Check if is a file on s3."""
         return key_is_file_on_s3(self.s3_key)
-    
+
     def is_file_and_exists_on_s3(self) -> bool:
         """Check if is a file and exists on s3."""
         return self.exists_on_s3() and self.is_file_on_s3()
-    
+
     def update_callback_on_skipped_transfer(self):
         """Update the current global callback if the transfer gets skipped."""
-        if S3MPConfig.callback and self in S3MPConfig.callback._transfer_objs:
-            S3MPConfig.callback(self.local_path.stat().st_size)
+        callback = S3MPConfig.callback
+        if callback and hasattr(callback, "_transfer_objs") and self in callback._transfer_objs:
+            callback(self.local_path.stat().st_size)
 
     def download_to_mirror(self, overwrite: bool = False):
         """Download S3 file to mirror."""
@@ -129,7 +138,7 @@ class MirrorPath:
         """Get key segment."""
         return self.key_segments[index]
 
-    def replace_key_segments(self, replace_segments: List[KeySegment]) -> MirrorPath:
+    def replace_key_segments(self, replace_segments: list[KeySegment]) -> MirrorPath:
         """Replace key segments."""
         new_segments = self.key_segments[:]
         for seg in replace_segments:
@@ -139,7 +148,7 @@ class MirrorPath:
         return MirrorPath(new_segments)
 
     def replace_key_segments_at_relative_depth(
-        self, replace_segments: List[KeySegment]
+        self, replace_segments: list[KeySegment]
     ) -> MirrorPath:
         """Replace key segments at relative depth."""
         replace_segments = [seg.__copy__() for seg in replace_segments]
@@ -149,15 +158,13 @@ class MirrorPath:
 
     def get_sibling(self, sibling_name: str) -> MirrorPath:
         """Get a file with the same parent as this file."""
-        return self.replace_key_segments_at_relative_depth(
-            [KeySegment(0, sibling_name)]
-        )
+        return self.replace_key_segments_at_relative_depth([KeySegment(0, sibling_name)])
 
     def get_child(self, child_name: str) -> MirrorPath:
         """Get a child of this file."""
         return self.replace_key_segments_at_relative_depth([KeySegment(1, child_name)])
 
-    def get_children_on_s3(self) -> List[MirrorPath]:
+    def get_children_on_s3(self) -> list[MirrorPath]:
         """Get all children on s3."""
         return [MirrorPath.from_s3_key(key) for key in s3_list_child_keys(self.s3_key)]
 
@@ -179,7 +186,7 @@ class MirrorPath:
         self.delete_s3()
 
     def load_local(
-        self, download: bool = True, load_fn: Callable = None, overwrite: bool = False
+        self, download: bool = True, load_fn: Callable | None = None, overwrite: bool = False
     ):
         """
         Load local file, infer file type and load.
@@ -197,14 +204,14 @@ class MirrorPath:
         self,
         data,
         upload: bool = True,
-        save_fn: Callable = None,
+        save_fn: Callable | None = None,
         overwrite: bool = False,
     ):
         """Save local file, infer file type and upload."""
         try:
             self.local_path.parent.mkdir(parents=True, exist_ok=True)
         except FileExistsError:  # handle for race conditions
-            pass    
+            pass
         if save_fn is None:
             suffix = self.local_path.suffix[1:].lower()
             save_fn = DEFAULT_SAVE_LEDGER[suffix]
@@ -215,9 +222,10 @@ class MirrorPath:
 
     def copy_to_mp_s3_only(self, dest_mp: MirrorPath):
         """Copy this file from S3 to a destination on S3."""
+        bucket_key = S3MPConfig.default_bucket_key
         S3MPConfig.s3_client.copy_object(
-            CopySource={"Bucket": S3MPConfig.default_bucket_key, "Key": self.s3_key},
-            Bucket=S3MPConfig.default_bucket_key,
+            CopySource={"Bucket": bucket_key, "Key": self.s3_key},
+            Bucket=bucket_key,
             Key=dest_mp.s3_key,
         )
 
@@ -226,8 +234,8 @@ class MirrorPath:
         shutil.copy(self.local_path, dest_mp.local_path)
 
     def copy_to_mp(self, dest_mp: MirrorPath, use_mirror_as_src: bool = False):
-        """Copy this file to a destination, on S3 and in the mirror. 
-        
+        """Copy this file to a destination, on S3 and in the mirror.
+
         By default, assumes the S3 copy is the source of truth.
         If use_mirror_as_src is True, assumes the mirror is the source of truth.
         """
@@ -242,20 +250,34 @@ class MirrorPath:
             self.copy_to_mp_s3_only(dest_mp)
             dest_mp.download_to_mirror(overwrite=True)
 
+    def parse_image_metadata(self):
+        """Parse image metadata from this MirrorPath.
 
-def get_matching_s3_mirror_paths(
-    segments: List[KeySegment]
-):
+        Returns:
+            ImageMetadata object with parsed metadata from the image file
+
+        """
+        from S3MP.utils.image_utils import ImageMetadata
+
+        return ImageMetadata.parse_metadata(self)
+
+    def compute_gsd(self, coords: tuple[float, float]) -> float:
+        """Compute GSD (Ground Sample Distance) for the image at given coordinates.
+
+        Args:
+            coords: Tuple of (x, y) pixel coordinates within the image for which to compute GSD.
+        """
+        from S3MP.utils.image_utils import ImageMetadata
+
+        return ImageMetadata.parse_metadata(self).compute_gsd(coords)
+
+
+def get_matching_s3_mirror_paths(segments: list[KeySegment]):
     """Get matching S3 mirror paths."""
-    return [ 
-        MirrorPath.from_s3_key(key)
-        for key in get_matching_s3_keys(segments)
-    ]
+    return [MirrorPath.from_s3_key(key) for key in get_matching_s3_keys(segments)]
 
 
-def multithread_download_mps_to_mirror(
-    mps: list[MirrorPath], overwrite: bool = False
-):
+def multithread_download_mps_to_mirror(mps: list[MirrorPath], overwrite: bool = False):
     """Download a list of MirrorPaths to the local mirror."""
     n_procs = psutil.cpu_count(logical=False)
     proc_executor = concurrent.futures.ProcessPoolExecutor(max_workers=n_procs)
@@ -271,6 +293,8 @@ def multithread_download_mps_to_mirror(
 
     all_proc_futures_except = [pf for pf in all_proc_futures if pf.exception()]
     for pf in all_proc_futures_except:
-        raise pf.exception()
+        exc = pf.exception()
+        if exc:
+            raise exc
 
     proc_executor.shutdown(wait=True)

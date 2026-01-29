@@ -1,13 +1,14 @@
 """
 S3 callbacks to be used for boto3 transfers (uploads, downloads, and copies).
 """
+
 from pathlib import Path
-from S3MP.global_config import S3MPConfig
-import os
+
 import tqdm
 
+from S3MP.global_config import S3MPConfig
 from S3MP.mirror_path import MirrorPath
-from S3MP.types import SList, S3Resource
+from S3MP.types import S3Resource
 
 
 class FileSizeTQDMCallback(tqdm.tqdm):
@@ -15,8 +16,8 @@ class FileSizeTQDMCallback(tqdm.tqdm):
 
     def __init__(
         self,
-        transfer_objs: SList[Path | str | MirrorPath],
-        resource: S3Resource = None,
+        transfer_objs: list[Path | str | MirrorPath] | Path | str | MirrorPath,
+        resource: S3Resource | None = None,
         bucket_key=None,
         is_download: bool = True,
     ):
@@ -29,24 +30,33 @@ class FileSizeTQDMCallback(tqdm.tqdm):
         :param is_download: Marker for upload/download transfer.
         """
         if transfer_objs is None:
-            return 
+            return
         if resource is None:
             resource = S3MPConfig.s3_resource
         if bucket_key is None:
             bucket_key = S3MPConfig.default_bucket_key
         if not isinstance(transfer_objs, list):
             transfer_objs = [transfer_objs]
-        
 
         self._total_bytes = 0
         for transfer_mapping in transfer_objs:
             if is_download:
-                s3_key = transfer_mapping.s3_key if isinstance(transfer_mapping, MirrorPath) else transfer_mapping
+                s3_key = str(
+                    transfer_mapping.s3_key
+                    if isinstance(transfer_mapping, MirrorPath)
+                    else transfer_mapping
+                )
                 self._total_bytes += resource.Object(bucket_key, s3_key).content_length
             else:
-                local_path = transfer_mapping.local_path if isinstance(transfer_mapping, MirrorPath) else transfer_mapping
+                local_path = (
+                    transfer_mapping.local_path
+                    if isinstance(transfer_mapping, MirrorPath)
+                    else transfer_mapping
+                )
+                # Ensure local_path is a Path object, not str
+                if isinstance(local_path, str):
+                    local_path = Path(local_path)
                 self._total_bytes += local_path.stat().st_size
-
 
         transfer_str = "Download" if is_download else "Upload"
         super().__init__(
