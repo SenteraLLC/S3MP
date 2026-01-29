@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 from imgparse import MetadataParser
-from imgparse.types import Dimensions, Euler, WorldCoords
+from imgparse.types import Dimensions, DistortionParams, Euler, WorldCoords
 from numpy.typing import NDArray
 
 from S3MP.mirror_path import MirrorPath
@@ -23,7 +23,7 @@ class ImageMetadata:
         rotation: Euler | None = None,
         focal_length: float | None = None,
         altitude: float | None = None,
-        distortion_params: list[float] | None = None,
+        distortion_params: DistortionParams | None = None,
     ):
         """Initialize ImageMetadata object.
 
@@ -87,7 +87,7 @@ class ImageMetadata:
             parser.rotation(),
             parser.focal_length_pixels(),
             parser.relative_altitude(),
-            parser.distortion_parameters,
+            parser.distortion_parameters(),
         )
 
     @property
