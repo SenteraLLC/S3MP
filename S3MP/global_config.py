@@ -39,11 +39,34 @@ class _S3MPConfigClass(metaclass=Singleton):
     # Config Items
     _default_bucket_key: str | None = None
     _mirror_root: Path | None = None
+    _iam_role_arn: str | None = None
 
     # Other Items
     transfer_config: S3TransferConfig | None = None
     callback: Callable | None = None
     use_async_global_thread_queue: bool = True
+
+    def assume_role(self, role_arn: str) -> None:
+        """Assume an IAM role and update the S3 client and resource with the new credentials."""
+        sts_client = boto3.client("sts")
+        assumed_role = sts_client.assume_role(
+            RoleArn=role_arn, RoleSessionName="S3MPAssumeRoleSession"
+        )
+        credentials = assumed_role["Credentials"]
+
+        self._s3_client = boto3.client(
+            "s3",
+            aws_access_key_id=credentials["AccessKeyId"],
+            aws_secret_access_key=credentials["SecretAccessKey"],
+            aws_session_token=credentials["SessionToken"],
+        )
+        self._s3_resource = boto3.resource(
+            "s3",
+            aws_access_key_id=credentials["AccessKeyId"],
+            aws_secret_access_key=credentials["SecretAccessKey"],
+            aws_session_token=credentials["SessionToken"],
+        )
+        self._iam_role_arn = role_arn
 
     @property
     def default_bucket_key(self) -> str:
@@ -108,6 +131,9 @@ class _S3MPConfigClass(metaclass=Singleton):
         if "mirror_root" in config["DEFAULT"]:
             self._mirror_root = Path(config["DEFAULT"]["mirror_root"])
 
+        if "iam_role_arn" in config["DEFAULT"]:
+            self.assume_role(config["DEFAULT"]["iam_role_arn"])
+
     def save_config(self, config_file_path: Path | None = None):
         """Write config file."""
         config_file_path = config_file_path or get_config_file_path()
@@ -117,6 +143,8 @@ class _S3MPConfigClass(metaclass=Singleton):
             config["DEFAULT"]["default_bucket_key"] = self._default_bucket_key
         if self._mirror_root:
             config["DEFAULT"]["mirror_root"] = str(self._mirror_root)
+        if self._iam_role_arn:
+            config["DEFAULT"]["iam_role_arn"] = self._iam_role_arn
         with open(config_file_path, "w") as configfile:
             config.write(configfile)
 
