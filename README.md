@@ -26,6 +26,11 @@ For image files stored in S3, you can parse EXIF metadata including camera param
 ```bash
 uv sync --extra image
 ```
+or, if installing using ssh:
+```toml
+[dependencies]
+"S3MP[image] @ git+ssh://git@github.com/SenteraLLC/S3MP@master",
+```
 
 ```python
 from S3MP.mirror_path import MirrorPath
@@ -135,6 +140,18 @@ Although the "Setup Paths" section looks a little dense, overall this example is
 
 To specify the local directory to store the mirror at, use the `set_env_mirror_root` function in `global_config.py`. This will create a `.env` file in the root of the package, and will be loaded on import.
 If no mirror root is specified and no `.env` file is found, a temporary directory will be used.
+
+Alternatively, you can setup the enviroment in your project's `__init__.py` file:
+```python
+from S3MP.global_config import S3MPConfig
+
+# Set default bucket
+S3MPConfig.set_default_bucket_key("<your-default-bucket-key>")
+# Set mirror root
+S3MPConfig.set_mirror_root("s3_mirror")
+# Assume role for S3 access
+S3MPConfig.assume_role("arn:aws:iam::<account-id>:role/<role-name>")
+```
 
 ## Installation
 [uv](https://docs.astral.sh/uv/) is a fast, cross-platform Python package installer and resolver.

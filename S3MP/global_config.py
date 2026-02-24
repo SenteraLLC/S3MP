@@ -5,6 +5,7 @@ from collections.abc import Callable
 from configparser import ConfigParser
 from dataclasses import dataclass
 from pathlib import Path
+from sys import platform
 
 import boto3
 
@@ -115,6 +116,20 @@ class _S3MPConfigClass(metaclass=Singleton):
             print("Mirror Root not set, a temporary directory will be used as the mirror root.")
             self._mirror_root = Path(tempfile.gettempdir())
         return self._mirror_root
+
+    def set_mirror_root(self, mirror_root: Path | str) -> None:
+        """Set mirror root. If a relative path is provided, it will be prefixed with the OS-specific root (e.g., C:\\ on Windows or / otherwise)."""
+        mirror_path = Path(mirror_root)
+
+        if mirror_path.is_absolute():
+            # If it's an absolute path, use it as-is
+            self._mirror_root = mirror_path
+        else:
+            # If it's a relative path, prefix with OS-specific root
+            if platform == "win32":
+                self._mirror_root = Path(f"C:\\{mirror_path}")
+            else:
+                self._mirror_root = Path(f"/{mirror_path}")
 
     def load_config(self, config_file_path: Path | None = None):
         """Load the config file."""
