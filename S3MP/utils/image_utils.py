@@ -78,6 +78,12 @@ class ImageMetadata:
         mirror_path.download_to_mirror_if_not_present()
 
         parser = MetadataParser(mirror_path.local_path)
+
+        try:
+            distortion_params = parser.distortion_parameters()
+        except Exception:
+            distortion_params = None
+
         return cls(
             mirror_path,
             parser.dimensions(),
@@ -87,7 +93,7 @@ class ImageMetadata:
             parser.rotation(),
             parser.focal_length_pixels(),
             parser.relative_altitude(),
-            parser.distortion_parameters(),
+            distortion_params,
         )
 
     @property
