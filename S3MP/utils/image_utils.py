@@ -37,8 +37,8 @@ class ImageMetadata:
             rotation: Euler angles (roll, pitch, yaw) if available
             focal_length: Focal length in pixels if available
             altitude: Altitude in meters if available
-            dewarp_flag: Flag indicating if image should be dewarped based on metadata
             distortion_params: Distortion parameters if available
+            dewarp_flag: Flag indicating if image should be dewarped based on metadata
         """
         self.mirror_path = mirror_path
         self.name = self.mirror_path.local_path.stem
