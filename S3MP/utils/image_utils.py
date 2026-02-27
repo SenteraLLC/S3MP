@@ -24,6 +24,7 @@ class ImageMetadata:
         focal_length: float | None = None,
         altitude: float | None = None,
         distortion_params: DistortionParams | None = None,
+        dewarp_flag: bool = False,
     ):
         """Initialize ImageMetadata object.
 
@@ -37,6 +38,7 @@ class ImageMetadata:
             focal_length: Focal length in pixels if available
             altitude: Altitude in meters if available
             distortion_params: Distortion parameters if available
+            dewarp_flag: Flag indicating if image should be dewarped based on metadata
         """
         self.mirror_path = mirror_path
         self.name = self.mirror_path.local_path.stem
@@ -63,6 +65,7 @@ class ImageMetadata:
         self.focal_length = focal_length
         self.altitude = altitude
         self.distortion_params = distortion_params
+        self.dewarp_flag = dewarp_flag
 
     @classmethod
     def parse_metadata(cls, mirror_path: MirrorPath) -> ImageMetadata:
@@ -84,6 +87,11 @@ class ImageMetadata:
         except Exception:
             distortion_params = None
 
+        try:
+            dewarp_flag = parser.dewarp_flag()
+        except KeyError:
+            dewarp_flag = False
+
         return cls(
             mirror_path,
             parser.dimensions(),
@@ -94,6 +102,7 @@ class ImageMetadata:
             parser.focal_length_pixels(),
             parser.relative_altitude(),
             distortion_params,
+            dewarp_flag,
         )
 
     @property
