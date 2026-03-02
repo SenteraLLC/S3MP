@@ -69,6 +69,9 @@ class _S3MPConfigClass(metaclass=Singleton):
         )
         self._iam_role_arn = role_arn
 
+        # Clear cached bucket
+        self._bucket = None
+
     @property
     def default_bucket_key(self) -> str:
         """Get default bucket key."""
@@ -81,6 +84,14 @@ class _S3MPConfigClass(metaclass=Singleton):
     def set_default_bucket_key(self, bucket_key: str) -> None:
         """Set default bucket key."""
         self._default_bucket_key = bucket_key
+        # Clear cached bucket
+        self._bucket = None
+
+    def clear_boto3_cache(self) -> None:
+        """Clear cached boto3 client and resource."""
+        self._s3_client = None
+        self._s3_resource = None
+        self._bucket = None
 
     @property
     def s3_client(self) -> S3Client:
