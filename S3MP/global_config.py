@@ -69,6 +69,9 @@ class _S3MPConfigClass(metaclass=Singleton):
         )
         self._iam_role_arn = role_arn
 
+        # Clear cached bucket
+        self._bucket = None
+
     @property
     def default_bucket_key(self) -> str:
         """Get default bucket key."""
