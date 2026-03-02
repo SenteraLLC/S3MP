@@ -82,6 +82,10 @@ class _S3MPConfigClass(metaclass=Singleton):
         """Set default bucket key."""
         self._default_bucket_key = bucket_key
 
+        # Reset client/resource
+        self._s3_client = None
+        self._s3_resource = None
+
     @property
     def s3_client(self) -> S3Client:
         """Get S3 client."""
