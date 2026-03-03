@@ -114,9 +114,12 @@ class _S3MPConfigClass(metaclass=Singleton):
     def boto3_config(self) -> Config:
         """Get boto3 config parameters."""
         if self._boto3_config is None:
-            self._boto3_config = Config(
-                max_pool_connections=self._max_pool_connections,
-            )
+            if self._max_pool_connections is not None:
+                self._boto3_config = Config(
+                    max_pool_connections=self._max_pool_connections,
+                )
+            else:
+                self._boto3_config = Config()
         return self._boto3_config
 
     @property
