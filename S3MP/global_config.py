@@ -125,15 +125,23 @@ class _S3MPConfigClass(metaclass=Singleton):
     @property
     def s3_client(self) -> S3Client:
         """Get S3 client."""
+        if not self._s3_client and self._iam_role_arn:
+            self.assume_role(self._iam_role_arn)
+
         if not self._s3_client:
             self._s3_client = boto3.client("s3", config=self.boto3_config)
+
         return self._s3_client
 
     @property
     def s3_resource(self) -> S3Resource:
         """Get S3 resource."""
+        if not self._s3_resource and self._iam_role_arn:
+            self.assume_role(self._iam_role_arn)
+
         if not self._s3_resource:
             self._s3_resource = boto3.resource("s3", config=self.boto3_config)
+
         return self._s3_resource
 
     def get_bucket(self, bucket_key: str | None = None) -> S3Bucket:
