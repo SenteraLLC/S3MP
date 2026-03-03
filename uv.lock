@@ -1515,7 +1515,7 @@ wheels = [
 
 [[package]]
 name = "s3mp"
-version = "0.8.3"
+version = "0.8.4"
 source = { editable = "." }
 dependencies = [
     { name = "aioboto3" },
