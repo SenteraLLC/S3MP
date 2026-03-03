@@ -89,7 +89,7 @@ class ImageMetadata:
 
         try:
             dewarp_flag = parser.dewarp_flag()
-        except KeyError:
+        except Exception:
             dewarp_flag = False
 
         return cls(
