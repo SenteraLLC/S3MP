@@ -8,6 +8,7 @@ from pathlib import Path
 from sys import platform
 
 import boto3
+from botocore.config import Config
 
 from S3MP.types import S3Bucket, S3Client, S3Resource, S3TransferConfig
 
@@ -36,11 +37,13 @@ class _S3MPConfigClass(metaclass=Singleton):
     _s3_client: S3Client | None = None
     _s3_resource: S3Resource | None = None
     _bucket: S3Bucket | None = None
+    _boto3_config: Config | None = None
 
     # Config Items
     _default_bucket_key: str | None = None
     _mirror_root: Path | None = None
     _iam_role_arn: str | None = None
+    _max_pool_connections: int | None = None
 
     # Other Items
     transfer_config: S3TransferConfig | None = None
@@ -60,12 +63,14 @@ class _S3MPConfigClass(metaclass=Singleton):
             aws_access_key_id=credentials["AccessKeyId"],
             aws_secret_access_key=credentials["SecretAccessKey"],
             aws_session_token=credentials["SessionToken"],
+            config=self.boto3_config,
         )
         self._s3_resource = boto3.resource(
             "s3",
             aws_access_key_id=credentials["AccessKeyId"],
             aws_secret_access_key=credentials["SecretAccessKey"],
             aws_session_token=credentials["SessionToken"],
+            config=self.boto3_config,
         )
         self._iam_role_arn = role_arn
 
@@ -92,19 +97,40 @@ class _S3MPConfigClass(metaclass=Singleton):
         self._s3_client = None
         self._s3_resource = None
         self._bucket = None
+        self._boto3_config = None
+
+    @property
+    def max_pool_connections(self) -> int | None:
+        """Get max pool connections."""
+        return self._max_pool_connections
+
+    def set_max_pool_connections(self, max_connections: int) -> None:
+        """Set max pool connections."""
+        self._max_pool_connections = max_connections
+        # Clear cached boto3 config and clients to apply new max pool connections
+        self.clear_boto3_cache()
+
+    @property
+    def boto3_config(self) -> Config:
+        """Get boto3 config parameters."""
+        if self._boto3_config is None:
+            self._boto3_config = Config(
+                max_pool_connections=self._max_pool_connections,
+            )
+        return self._boto3_config
 
     @property
     def s3_client(self) -> S3Client:
         """Get S3 client."""
         if not self._s3_client:
-            self._s3_client = boto3.client("s3")
+            self._s3_client = boto3.client("s3", config=self.boto3_config)
         return self._s3_client
 
     @property
     def s3_resource(self) -> S3Resource:
         """Get S3 resource."""
         if not self._s3_resource:
-            self._s3_resource = boto3.resource("s3")
+            self._s3_resource = boto3.resource("s3", config=self.boto3_config)
         return self._s3_resource
 
     def get_bucket(self, bucket_key: str | None = None) -> S3Bucket:
@@ -157,6 +183,9 @@ class _S3MPConfigClass(metaclass=Singleton):
         if "mirror_root" in config["DEFAULT"]:
             self._mirror_root = Path(config["DEFAULT"]["mirror_root"])
 
+        if "max_pool_connections" in config["DEFAULT"]:
+            self.set_max_pool_connections(int(config["DEFAULT"]["max_pool_connections"]))
+
         if "iam_role_arn" in config["DEFAULT"]:
             self.assume_role(config["DEFAULT"]["iam_role_arn"])
 
@@ -165,12 +194,14 @@ class _S3MPConfigClass(metaclass=Singleton):
         config_file_path = config_file_path or get_config_file_path()
         config = ConfigParser()
         config["DEFAULT"] = {}
-        if self._default_bucket_key is not None:
+        if self._default_bucket_key:
             config["DEFAULT"]["default_bucket_key"] = self._default_bucket_key
         if self._mirror_root:
             config["DEFAULT"]["mirror_root"] = str(self._mirror_root)
         if self._iam_role_arn:
             config["DEFAULT"]["iam_role_arn"] = self._iam_role_arn
+        if self._max_pool_connections:
+            config["DEFAULT"]["max_pool_connections"] = str(self._max_pool_connections)
         with open(config_file_path, "w") as configfile:
             config.write(configfile)
 
